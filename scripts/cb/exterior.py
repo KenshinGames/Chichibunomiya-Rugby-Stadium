@@ -12,7 +12,8 @@ import random
 from . import config, materials as M
 from .util import MB, coll
 
-WALLS = ["house_a", "house_b", "house_c", "apart_a", "apart_b", "office_a", "office_b", "office_c"]
+WALLS = ["house_a", "house_b", "house_c", "apart_a", "apart_b", "apart_c", "office_a", "office_b", "office_c",
+         "office_e", "office_f"]
 ROAD_Z = {"trunk": 0.030, "primary": 0.028, "primary_link": 0.027, "secondary": 0.026, "secondary_link": 0.025,
           "tertiary": 0.024, "tertiary_link": 0.023, "unclassified": 0.022, "residential": 0.021,
           "living_street": 0.020, "service": 0.019, "pedestrian": 0.016, "footway": 0.014, "path": 0.013,
@@ -207,26 +208,72 @@ def _roads(S, c):
     walk.build("walks", c)
 
 
+def _poly_area_c(poly):
+    A = cx = cy = 0.0
+    n = len(poly)
+    for i in range(n):
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % n]
+        k = x0 * y1 - x1 * y0
+        A += k
+        cx += (x0 + x1) * k
+        cy += (y0 + y1) * k
+    if abs(A) < 1e-6:
+        return 0.0, poly[0]
+    return abs(A) / 2, (cx / (3 * A), cy / (3 * A))
+
+
+def _roof_box(mb, poly, cx, cy, sx, sy, z0, z1, mat):
+    """屋上の箱。四隅が屋根の中に入るときだけ置く。"""
+    corners = [(cx - sx, cy - sy), (cx + sx, cy - sy), (cx + sx, cy + sy), (cx - sx, cy + sy)]
+    if all(_inside(p, poly) for p in corners):
+        mb.box(cx - sx, cx + sx, cy - sy, cy + sy, z0, z1, mat)
+        return True
+    return False
+
+
 def _buildings(S, c):
+    """建物: 外形を高さまで立ち上げる。屋上の縁(パラペット)を 0.9 m 立ち上げ、
+    大きな屋根には設備の箱や塔屋を載せる(形は推定。遠目の輪郭を単調にしないため)。"""
     mb = MB()
     roofs = [M.get("roof_flat_a"), M.get("roof_flat_b"), M.get("concrete_dark")]
+    gear = M.get("roof_gear")
     for b in S["buildings"]:
         poly, h = b["poly"], b["h"]
         r = _h01(b["id"])
+        rnd = random.Random(b["id"])
         if b["name"] == "伊藤忠商事東京本社ビル":
             wall = M.get("office_d")
         elif h >= 60:
             # 高さ 60 m 以上の塔はガラスの外壁(青山の高層は 1990 年代以降のガラス張りが多い。写真 05・02)
             wall = M.get(("office_glass", "office_glass2")[int(r * 2) % 2])
         elif h > 40:
-            wall = M.get(("office_a", "office_b", "office_c")[int(r * 3) % 3])
+            wall = M.get(("office_a", "office_b", "office_c", "office_e", "office_f")[int(r * 5) % 5])
+        elif h > 14:
+            wall = M.get(("apart_a", "apart_b", "apart_c", "office_a", "office_b", "office_c", "office_e",
+                          "office_f")[int(r * 8) % 8])
         else:
             wall = M.get(WALLS[int(r * len(WALLS)) % len(WALLS)])
+        area, (cx, cy) = _poly_area_c(poly)
+        par = 0.9 if h > 7 and area > 60 else 0.0
         n = len(poly)
         for i in range(n):
             p, q = poly[i], poly[(i + 1) % n]
-            mb.face(((p[0], p[1], 0.0), (q[0], q[1], 0.0), (q[0], q[1], h), (p[0], p[1], h)), wall)
+            mb.face(((p[0], p[1], 0.0), (q[0], q[1], 0.0), (q[0], q[1], h + par), (p[0], p[1], h + par)), wall)
         mb.face([(p[0], p[1], h) for p in poly], roofs[int(r * 7) % 3])
+        if area < 120 or h < 8 or not _inside((cx, cy), poly):
+            continue
+        xs, ys = [p[0] for p in poly], [p[1] for p in poly]
+        ext = min(max(xs) - min(xs), max(ys) - min(ys))
+        if h > 24 and rnd.random() < 0.7:
+            # 塔屋(階段室・機械室): 壁と同じ材料
+            s = ext * rnd.uniform(0.12, 0.2)
+            _roof_box(mb, poly, cx, cy, s * rnd.uniform(0.8, 1.4), s, h, h + rnd.uniform(3.0, 4.5), wall)
+        for _ in range(rnd.randint(1, 4) if area > 300 else rnd.randint(0, 2)):
+            s = max(0.8, ext * rnd.uniform(0.04, 0.09))
+            ox = cx + rnd.uniform(-0.3, 0.3) * (max(xs) - min(xs))
+            oy = cy + rnd.uniform(-0.3, 0.3) * (max(ys) - min(ys))
+            _roof_box(mb, poly, ox, oy, s * rnd.uniform(0.7, 1.6), s, h, h + rnd.uniform(1.0, 2.2), gear)
     mb.build("buildings", c)
 
 

@@ -91,9 +91,11 @@ def _rainbow(name, base, night=1.1):
     return build
 
 
-def _house_wall(name, color, rough=0.9, metal=0.0, spec=0.5):
+def _house_wall(name, color, rough=0.9, metal=0.0, spec=0.5, fl=3.0, ww=2.6, wx=(0.25, 0.75), wz=(0.35, 0.78),
+                shop=False, dirt=0.12):
     """家やマンションの壁。窓の格子を描き、夜は 3 割ほどの窓に明かりがともる。
-    rough を小さくするとガラスの外壁(空を映す)。"""
+    rough を小さくするとガラスの外壁(空を映す)。fl = 階の高さ、ww = 窓の間隔、wx・wz = 窓の幅と高さの範囲(比)。
+    wx が (0, 1) なら横に続く窓(事務所の連続窓)。shop = 1 階を暗いガラスの店先に。dirt = 雨だれのむら。"""
     def build():
         m = _principled(name, color, rough=rough, metal=metal, spec=spec)
         nt = m.node_tree
@@ -111,12 +113,23 @@ def _house_wall(name, color, rough=0.9, metal=0.0, spec=0.5):
             elif v is not None:
                 n.inputs[1].default_value = v
             return n.outputs[0]
-        h = mth("DIVIDE", mth("ADD", sep.outputs["X"], bs=sep.outputs["Y"]), 2.6)
-        zz = mth("DIVIDE", sep.outputs["Z"], 3.0)
+        h = mth("DIVIDE", mth("ADD", sep.outputs["X"], bs=sep.outputs["Y"]), ww)
+        zz = mth("DIVIDE", sep.outputs["Z"], fl)
         fh, fz = mth("FRACT", h), mth("FRACT", zz)
-        inside = mth("MULTIPLY", mth("MULTIPLY", mth("GREATER_THAN", fh, 0.25), bs=mth("LESS_THAN", fh, 0.75)),
-                     bs=mth("MULTIPLY", mth("GREATER_THAN", fz, 0.35), bs=mth("LESS_THAN", fz, 0.78)))
-        win = mth("MULTIPLY", inside, bs=mth("GREATER_THAN", sep.outputs["Z"], 0.8))
+        inside = mth("MULTIPLY", mth("MULTIPLY", mth("GREATER_THAN", fh, wx[0]), bs=mth("LESS_THAN", fh, wx[1])),
+                     bs=mth("MULTIPLY", mth("GREATER_THAN", fz, wz[0]), bs=mth("LESS_THAN", fz, wz[1])))
+        if wx[1] - wx[0] >= 0.99:
+            # 連続窓の縦の桟(細い線)
+            mu = mth("FRACT", mth("MULTIPLY", h, 2.0))
+            inside = mth("MULTIPLY", inside, bs=mth("GREATER_THAN", mu, 0.06))
+        z0 = (fl + 0.8) if shop else 0.8
+        win = mth("MULTIPLY", inside, bs=mth("GREATER_THAN", sep.outputs["Z"], z0))
+        if shop:
+            # 1 階の店先: 暗いガラスと、柱の間隔ごとの白い枠
+            g = mth("LESS_THAN", sep.outputs["Z"], fl * 0.95)
+            g = mth("MULTIPLY", g, bs=mth("GREATER_THAN", sep.outputs["Z"], 0.25))
+            g = mth("MULTIPLY", g, bs=mth("GREATER_THAN", mth("FRACT", mth("DIVIDE", h, 2.0)), 0.06))
+            win = mth("MAXIMUM", win, bs=g)
         comb = N.new("ShaderNodeCombineXYZ")
         L.new(mth("FLOOR", h), comb.inputs[0]); L.new(mth("FLOOR", zz), comb.inputs[1])
         L.new(mth("FLOOR", mth("DIVIDE", mth("SUBTRACT", sep.outputs["X"], bs=sep.outputs["Y"]), 7.0)), comb.inputs[2])
@@ -125,8 +138,27 @@ def _house_wall(name, color, rough=0.9, metal=0.0, spec=0.5):
         lit = mth("MULTIPLY", win, bs=mth("LESS_THAN", wn.outputs["Value"], 0.32))
         # 昼: 窓は暗いガラスに
         mx = N.new("ShaderNodeMix"); mx.data_type = "RGBA"
-        mx.inputs["A"].default_value = color
         mx.inputs["B"].default_value = (0.05, 0.06, 0.07, 1)
+        if dirt:
+            # 雨だれ: 縦に伸ばしたむらで壁の色を少し暗く(上ほど強い汚れは省略)
+            sc = N.new("ShaderNodeMapping")
+            sc.inputs["Scale"].default_value = (0.35, 0.35, 0.04)
+            L.new(geo.outputs["Position"], sc.inputs["Vector"])
+            dn = N.new("ShaderNodeTexNoise")
+            dn.inputs["Scale"].default_value = 3.0
+            dn.inputs["Detail"].default_value = 6.0
+            L.new(sc.outputs["Vector"], dn.inputs["Vector"])
+            dm = N.new("ShaderNodeMapRange")
+            dm.inputs["To Min"].default_value = 1.0 - dirt
+            dm.inputs["To Max"].default_value = 1.0 + dirt * 0.4
+            L.new(dn.outputs["Fac"], dm.inputs["Value"])
+            wc0 = N.new("ShaderNodeMix"); wc0.data_type = "RGBA"; wc0.blend_type = "MULTIPLY"
+            wc0.inputs["Factor"].default_value = 1.0
+            wc0.inputs["A"].default_value = color
+            L.new(dm.outputs["Result"], wc0.inputs["B"])
+            L.new(wc0.outputs["Result"], mx.inputs["A"])
+        else:
+            mx.inputs["A"].default_value = color
         L.new(mth("MULTIPLY", win, 0.75), mx.inputs["Factor"])
         L.new(mx.outputs["Result"], b.inputs["Base Color"])
         # 夜: 暖かい色と白っぽい色の明かり
@@ -433,16 +465,22 @@ _builders = {
     "house_a": _house_wall("house_a", srgb(168, 162, 150)),
     "house_b": _house_wall("house_b", srgb(146, 144, 138)),
     "house_c": _house_wall("house_c", srgb(182, 176, 164)),
-    "apart_a": _house_wall("apart_a", srgb(198, 194, 184)),
-    "apart_b": _house_wall("apart_b", srgb(156, 150, 140)),
+    "apart_a": _house_wall("apart_a", srgb(198, 194, 184), fl=2.9, ww=3.4, wx=(0.12, 0.88), wz=(0.12, 0.80)),
+    "apart_b": _house_wall("apart_b", srgb(156, 150, 140), fl=2.9, ww=3.0, wx=(0.2, 0.8), wz=(0.3, 0.8), shop=True),
+    "apart_c": _house_wall("apart_c", srgb(222, 216, 204), fl=2.9, ww=3.6, wx=(0.1, 0.9), wz=(0.15, 0.78)),
     # 秩父宮のまわり(北青山)の事務所ビル。窓の格子は家と同じ仕組み
-    "office_a": _house_wall("office_a", srgb(188, 190, 192)),
-    "office_b": _house_wall("office_b", srgb(120, 132, 146)),
-    "office_c": _house_wall("office_c", srgb(200, 190, 172)),
+    "office_a": _house_wall("office_a", srgb(188, 190, 192), fl=3.8, wx=(0.0, 1.0), wz=(0.30, 0.82), shop=True),
+    "office_b": _house_wall("office_b", srgb(120, 132, 146), fl=3.8, ww=1.8, wx=(0.18, 0.82), wz=(0.25, 0.85), shop=True),
+    "office_c": _house_wall("office_c", srgb(200, 190, 172), fl=3.6, ww=3.2, wx=(0.2, 0.8), wz=(0.3, 0.8), shop=True),
+    "office_e": _house_wall("office_e", srgb(214, 212, 206), fl=3.8, wx=(0.0, 1.0), wz=(0.42, 0.85), shop=True),
+    "office_f": _house_wall("office_f", srgb(150, 140, 128), fl=3.6, ww=1.5, wx=(0.22, 0.78), wz=(0.2, 0.86), shop=True),
     "office_d": _house_wall("office_d", srgb(92, 84, 80)),
     # 高層のガラスの外壁(写真 05 の青山OM-SQUARE、写真 02 の左の塔): 暗い青緑のガラス、空を映す
-    "office_glass": _house_wall("office_glass", srgb(58, 78, 88), rough=0.12, metal=0.35, spec=0.8),
-    "office_glass2": _house_wall("office_glass2", srgb(70, 74, 82), rough=0.18, metal=0.25, spec=0.7),
+    # 階ごとの白っぽい帯(床の位置)と、そのあいだの暗いガラス。縦の桟は 1.3 m おき
+    "office_glass": _house_wall("office_glass", srgb(150, 162, 170), rough=0.12, metal=0.35, spec=0.8,
+                                fl=4.0, ww=2.6, wx=(0.0, 1.0), wz=(0.0, 0.78), dirt=0.0),
+    "office_glass2": _house_wall("office_glass2", srgb(168, 170, 172), rough=0.18, metal=0.25, spec=0.7,
+                                 fl=4.0, ww=3.0, wx=(0.0, 1.0), wz=(0.0, 0.72), dirt=0.0),
     "roof_flat_a": _noisy("roof_flat_a", srgb(150, 150, 148), 0.9, scale=0.3, amount=0.15),
     "roof_flat_b": _noisy("roof_flat_b", srgb(118, 122, 124), 0.9, scale=0.3, amount=0.15),
     "court": _noisy("court", srgb(150, 158, 128), 0.85, scale=0.5, amount=0.08),   # 砂入り人工芝(空中写真のコートの中は (168,174,158)〜(182,174,162) の色みの薄い灰緑・灰ベージュ)
@@ -521,6 +559,7 @@ define("text_white", color=srgb(245, 245, 245), rough=0.6)
 define("text_red", color=srgb(200, 30, 36), rough=0.6)
 define("trunk", color=srgb(80, 62, 48), rough=0.9)
 define("roof_a", color=srgb(62, 66, 74), rough=0.8)
+define("roof_gear", color=srgb(176, 178, 176), rough=0.5, metal=0.3)
 define("roof_b", color=srgb(58, 76, 104), rough=0.8)
 define("roof_c", color=srgb(98, 80, 72), rough=0.8)
 define("aisle_dark", color=srgb(46, 46, 50), rough=0.9)
