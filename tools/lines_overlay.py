@@ -7,7 +7,7 @@ import sys
 
 photo, out = sys.argv[1], sys.argv[2]
 cx, cy, cz, tx, ty, tz, lens = map(float, sys.argv[3:10])
-W, H = 960, 720
+W, H = (int(sys.argv[10]), int(sys.argv[11])) if len(sys.argv) > 11 else (960, 720)
 raw = subprocess.run(["ffmpeg", "-loglevel", "error", "-i", photo, "-vf", "scale=%d:%d" % (W, H),
                       "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], capture_output=True, check=True).stdout
 img = bytearray(raw)
@@ -52,6 +52,15 @@ for y in (30, -30, 20, -20):
     seg((-50, y, 0), (50, y, 0), CY)                  # 5 m・15 m
 for x in (0, 10, -10, 28, -28, 50, -50):
     seg((x, -35, 0), (x, 35, 0), RED if x in (0, 50, -50, 28, -28) else CY)
+# ゴールポスト(X=±50、Y=±2.8、高さ 12 m、クロスバー 3 m)
+for gx in (50, -50):
+    for gy in (2.8, -2.8):
+        seg((gx, gy, 0), (gx, gy, 12), YEL)
+    seg((gx, -2.8, 3), (gx, 2.8, 3), YEL)
+# 北の前の壁(X=70.5)、映像装置(X=86、Y 7〜−9、8.4〜17.2 m)
+seg((70.5, -33, 1.0), (70.5, 35.7, 1.0), MAG)
+for (y0, y1, z0, z1) in ((7, -9, 8.4, 8.4), (7, -9, 17.2, 17.2), (7, 7, 8.4, 17.2), (-9, -9, 8.4, 17.2)):
+    seg((86, y0, z0), (86, y1, z1), MAG)
 # 東の前の壁(Y=-41.7、上端 1.2 m)と最上部(Y=-76.4、11.2 m)、照明塔の頭
 seg((-70, -41.7, 1.2), (70, -41.7, 1.2), YEL)
 seg((-70, -41.7, 0.1), (70, -41.7, 0.1), YEL)

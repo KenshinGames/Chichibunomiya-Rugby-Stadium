@@ -4,6 +4,7 @@
 左が参考写真(Wikimedia Commons)、右がこのモデル。refs/commons/ に写真がなければ描いた側だけを out/compare/ に残す。
 """
 import argparse
+import math
 import os
 import subprocess
 import sys
@@ -15,6 +16,11 @@ import bpy  # noqa: E402
 from cb import cameras, config, sky  # noqa: E402
 
 # (番号と名前, 参考写真のファイル, 作者, ライセンス, 昼夜, カメラ位置, 見る先, 焦点距離 mm, 縦横比)
+# 角度ごとの追加: roll(度、画像の傾き)、clip(手前を描かない距離 m。カメラが模型の段より下に入るとき)
+EXTRA = {
+    "04_from_south": {"roll": 1.79, "clip": 4.0},   # 解いたカメラ(高さ 6.6 m)は模型の南スタンドの段より低い。手前 4 m を描かない
+}
+
 ITEMS = [
     # 段階 3 で入れた比較(段数・高さ・屋根の奥行の確かめ)。カメラはゴールポスト(高さ 12 m、間隔 5.6 m)が重なるように合わせる
     ("01_from_back_south", "Chichibunomiya3.JPG", "Waka77", "Public domain", "day",
@@ -24,7 +30,7 @@ ITEMS = [
     ("03_back_stand", "秩父宮ラグビー場_(21776716854).jpg", "Tetsuji Sakakibara", "CC BY-SA 2.0", "day",
      (-3.3, 67.2, 12.8), (1.3, -59.3, 1.6), 31.8, (4, 3)),   # 芝のライン 20 点から最小二乗で解いた(平均 1.2 画素)
     ("04_from_south", "Chichibunomiya_Rugby_Stadium2.jpg", "江戸村のとくぞう", "CC BY-SA 4.0", "day",
-     (-82.2, -4.0, 6.1), (39.3, 7.3, -11.6), 29, (4, 3)),
+     (-86.8, -1.1, 6.6), (32.1, -1.3, -9.5), 32.7, (4, 3)),   # 手前と奥のポスト 10 点から解いた(平均 2 画素)
     ("05_behind_north_posts", "Chichibunomiya_Rugby_Stadium-6.jpg", "江戸村のとくぞう", "CC BY-SA 4.0", "day",
      (77.7, 4.6, 4.6), (-60.0, -18.3, 16.4), 46, (3, 2)),
 ]
@@ -56,6 +62,13 @@ def main():
         scene.render.image_settings.quality = 92
         (sky.setup_day if tm == "day" else sky.setup_night)(scene)
         scene.camera = cameras.make(scene, "cmp_" + name, loc, tgt, lens)
+        ex = EXTRA.get(name, {})
+        if ex.get("roll"):
+            from mathutils import Quaternion
+            ob = scene.camera
+            ob.rotation_euler = (ob.rotation_euler.to_quaternion() @ Quaternion((0, 0, 1), math.radians(ex["roll"]))).to_euler()
+        if ex.get("clip"):
+            scene.camera.data.clip_start = ex["clip"]
         rp = os.path.join(out_r, name + ".jpg")
         scene.render.filepath = rp
         bpy.ops.render.render(write_still=True)
