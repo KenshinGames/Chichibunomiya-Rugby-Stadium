@@ -83,6 +83,9 @@ def join_ways(geoms):
     return rings
 
 
+LOW_KINDS = ("parking", "garage", "garages", "sports_hall", "sports_centre", "warehouse", "grandstand")
+
+
 def height_of(e_id, t, name, a):
     if name in MANUAL_H:
         return MANUAL_H[name], "manual"
@@ -90,6 +93,9 @@ def height_of(e_id, t, name, a):
         return parse_num(t.get("height")), "height"
     if parse_num(t.get("building:levels")):
         return levels_height(parse_num(t.get("building:levels"))), "levels"
+    if t.get("sport") or t.get("building") in LOW_KINDS:
+        # 屋内のテニス場・駐車場など: 床面積が大きくても低い(写真 03 のバックスタンドの後ろのかまぼこ屋根)
+        return 9.0 + 4.0 * rnd01(e_id), "est"
     return est_height(e_id, a), "est"
 
 
@@ -170,15 +176,7 @@ def main():
             skipped += 1
             continue
         name = t.get("name", "")
-        h, src = None, "est"
-        if name in MANUAL_H:
-            h, src = MANUAL_H[name], "manual"
-        elif parse_num(t.get("height")):
-            h, src = parse_num(t.get("height")), "height"
-        elif parse_num(t.get("building:levels")):
-            h, src = levels_height(parse_num(t.get("building:levels"))), "levels"
-        else:
-            h = est_height(e["id"], a)
+        h, src = height_of(e["id"], t, name, a)
         if t.get("building") == "roof":
             h = min(h, 6.0)
         out["buildings"].append({"id": e["id"], "name": name, "kind": t.get("building", "yes"), "h": round(h, 1),
