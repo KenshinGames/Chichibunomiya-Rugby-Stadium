@@ -151,7 +151,8 @@ def _rooms(c):
 
 
 FACADE = dict(recess=2.0, low_h=6.0, band=(6.0, 7.4), band_out=1.2, col_step=7.0, col=1.0,
-              stair_w=10.0, stair_run=8.0, stair_steps=15, stair_rise=0.28)
+              stair_w=10.0, stair_run=8.0, stair_steps=15, stair_rise=0.28, landing=9.0)
+# 階段は OSM の steps(Y 94→86)と空中写真の白い長方形(Y 77〜93.7)から: 外壁の前 9 m の踊り場と 8 m の階段
 
 
 def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
@@ -184,15 +185,17 @@ def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
     # 中央の大階段(外から 2 階の帯の下まで上がる)。両脇に腰壁
     w, run, ns, rz = F["stair_w"], F["stair_run"], F["stair_steps"], F["stair_rise"]
     t = run / ns
+    ds = d1 + F["landing"]                                       # 階段の上端
     for j in range(ns):
-        da = d1 + run - (j + 1) * t
+        da = ds + run - (j + 1) * t
         mb.box(-w / 2, w / 2, da, da + t, 0.0, (j + 1) * rz, conc)
     top = ns * rz
-    mb.box(-w / 2, w / 2, dr, d1, 0.0, top, conc)               # 上の踊り場(吹き抜けの奥まで)
+    mb.box(-w / 2, w / 2, dr, ds, 0.0, top, conc)               # 上の踊り場(吹き抜けの奥から外へ 9 m)
     for x in (-w / 2 - 0.3, w / 2):
-        mb.face(((x, d1 + run, 0.0), (x, d1 + run, 1.0), (x, d1, top + 1.0), (x, d1, 0.0)), wall)
-        mb.face(((x + 0.3, d1, 0.0), (x + 0.3, d1, top + 1.0), (x + 0.3, d1 + run, 1.0), (x + 0.3, d1 + run, 0.0)), wall)
-        mb.face(((x, d1 + run, 1.0), (x + 0.3, d1 + run, 1.0), (x + 0.3, d1, top + 1.0), (x, d1, top + 1.0)), wall)
+        mb.face(((x, ds + run, 0.0), (x, ds + run, 1.0), (x, ds, top + 1.0), (x, ds, 0.0)), wall)
+        mb.face(((x + 0.3, ds, 0.0), (x + 0.3, ds, top + 1.0), (x + 0.3, ds + run, 1.0), (x + 0.3, ds + run, 0.0)), wall)
+        mb.face(((x, ds + run, 1.0), (x + 0.3, ds + run, 1.0), (x + 0.3, ds, top + 1.0), (x, ds, top + 1.0)), wall)
+        mb.box(x, x + 0.3, d1, ds, top, top + 1.0, wall)            # 踊り場の腰壁
 
 
 def _south_back(c):

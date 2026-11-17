@@ -40,11 +40,37 @@ def build():
     _buildings(S, c)
     if S.get("jingu"):
         _jingu(S["jingu"], c)
+    _main_gate(c)
     for st in S.get("stadiums", []):
         if S.get("jingu") and _near(st["outer"], S["jingu"]["outer"]):
             continue                      # 神宮球場は _jingu で作る
         _bowl(st, c)
     _trees(S, c)
+
+
+GATE = dict(x=0.5, y=131.0, span=10.0, pillar=0.9, clear=4.7, beam=0.75, depth=0.9)
+
+
+def _main_gate(c):
+    """正面入場口の門(西の歩道ぎわ、OSM の入口の通路が歩道から入る所)。写真 031・005: 濃い灰色の角柱 2 本に赤茶の帯、
+    上の梁に施設名「国立競技場秩父宮ラグビー場」。開口 10 m・柱 0.9 m 角・梁の下 4.7 m は写真の比率からの推定。"""
+    from mathutils import Vector
+    from .util import text_obj
+    G = GATE
+    mb = MB()
+    dark, band, bronze = M.get("gate_grey"), M.get("brick_wall"), M.get("gate_bronze")
+    x0, y0, h, p = G["x"], G["y"], G["clear"], G["pillar"]
+    top = h + G["beam"]
+    for sx in (-1, 1):
+        cx = x0 + sx * (G["span"] / 2 + p / 2)
+        mb.box(cx - p / 2, cx + p / 2, y0 - p / 2, y0 + p / 2, 0.0, top + 0.1, dark)
+        for zb in (0.9, 2.2, 3.5):                      # 赤茶の帯
+            mb.box(cx - p / 2 - 0.02, cx + p / 2 + 0.02, y0 - p / 2 - 0.02, y0 + p / 2 + 0.02, zb, zb + 0.18, band)
+    mb.box(x0 - G["span"] / 2 - p, x0 + G["span"] / 2 + p, y0 - G["depth"] / 2, y0 + G["depth"] / 2, h, top, bronze)
+    mb.build("main_gate", c)
+    p_txt = Vector((x0, y0 + G["depth"] / 2 + 0.02, h + G["beam"] / 2))
+    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.55, M.get("gate_letters"), c, p_txt,
+             (0, 1, 0), jp=True, max_width=G["span"] * 0.95)
 
 
 def _near(a, b, tol=40.0):
