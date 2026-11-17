@@ -174,6 +174,12 @@ def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
     for i in range(n + 1):
         u = u0 + 0.5 + (u1 - u0 - 1.0) * i / n
         mb.box(u - F["col"] / 2, u + F["col"] / 2, d1 - F["col"], d1, 0.0, F["low_h"], conc)
+    # 吹き抜けの天井灯(夜だけ光る。各柱間に 1 本)
+    lamp = M.emissive("concourse_light", (1.0, 0.84, 0.62, 1.0), 0.0, 9.0, base=(0.8, 0.8, 0.78, 1.0))
+    for i in range(n):
+        um = u0 + 0.5 + (u1 - u0 - 1.0) * (i + 0.5) / n
+        z = F["low_h"] - 0.04
+        mb.face(((um - 1.5, dr + 0.7, z), (um - 1.5, dr + 1.3, z), (um + 1.5, dr + 1.3, z), (um + 1.5, dr + 0.7, z)), lamp)
     # ベージュの通路の帯(外へ張り出す)
     b0, b1 = F["band"]
     mb.box(u0 - 0.5, u1 + 0.5, d1 - 0.2, d1 + F["band_out"], b0, b1, beige)

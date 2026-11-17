@@ -70,8 +70,27 @@ def _main_gate(c):
     mb.box(x0 - G["span"] / 2 - p, x0 + G["span"] / 2 + p, y0 - G["depth"] / 2, y0 + G["depth"] / 2, h, top, bronze)
     mb.build("main_gate", c)
     p_txt = Vector((x0, y0 + G["depth"] / 2 + 0.02, h + G["beam"] / 2))
-    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.55, M.get("gate_letters"), c, p_txt,
+    letters = M.emissive("gate_letters_lit", (1.0, 0.9, 0.72, 1.0), 0.0, 2.5, base=M.srgb(176, 168, 150))
+    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.55, letters, c, p_txt,
              (0, 1, 0), jp=True, max_width=G["span"] * 0.95)
+    _plaza_night(c)
+
+
+def _plaza_night(c):
+    """正面入場口の夜: 門の両脇の街灯(写真 031 の丸い頭の街灯、高さ 7 m は推定)と、外壁と広場を照らす面の光。"""
+    from mathutils import Vector
+    from .lights import _area
+    mb = MB()
+    pole = M.get("dark_steel")
+    head = M.emissive("street_lamp", (1.0, 0.9, 0.75, 1.0), 0.0, 40.0, base=(0.85, 0.85, 0.82, 1.0))
+    for (x, y) in ((-13.0, 128.5), (15.0, 128.5), (-9.0, 100.0), (11.0, 100.0)):
+        mb.cyl((x, y, 0.0), (x, y, 6.6), 0.08, pole, n=8)
+        mb.box(x - 0.3, x + 0.3, y - 0.3, y + 0.3, 6.6, 7.1, head)
+    mb.build("street_lamps", c)
+    nc = coll("night_lights")
+    for (x, energy) in ((-30.0, 1.6e4), (0.0, 2.0e4), (30.0, 1.6e4)):
+        _area("facade_light_%d" % int(x), nc, Vector((x, 112.0, 9.0)), (0.0, -1.0, -0.25), 26.0, 6.0, energy, spread=110.0)
+    _area("plaza_light", nc, Vector((1.0, 112.0, 12.0)), (0.0, 0.0, -1.0), 30.0, 30.0, 1.2e4, spread=120.0)
 
 
 # 神宮球場の照明塔(白い 2 本柱、大きな灯具)。比較 04 と 01 の解いたカメラからの向きの交点 [X, Y, 灯具の中心の高さ]。
