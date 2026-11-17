@@ -18,6 +18,7 @@ from cb import cameras, config, sky  # noqa: E402
 # (番号と名前, 参考写真のファイル, 作者, ライセンス, 昼夜, カメラ位置, 見る先, 焦点距離 mm, 縦横比)
 # 角度ごとの追加: roll(度、画像の傾き)、clip(手前を描かない距離 m。カメラが模型の段より下に入るとき)
 EXTRA = {
+    "02_from_back_north": {"roll": -1.15},
     "01_from_back_south": {"roll": -0.34, "clip": 1.0},
     "04_from_south": {"roll": 1.79, "clip": 4.0},   # 解いたカメラ(高さ 6.6 m)は模型の南スタンドの段より低い。手前 4 m を描かない
 }
@@ -27,7 +28,7 @@ ITEMS = [
     ("01_from_back_south", "Chichibunomiya3.JPG", "Waka77", "Public domain", "day",
      (-89.9, -71.5, 13.6), (8.6, -4.6, -1.9), 30.0, (3, 2)),   # 南のポスト 6 点、北のポストの根元 2 点、角のフラッグから解いた(平均 1.1 画素)
     ("02_from_back_north", "Chichibunomiya_Rugby1.JPG", "Waka77", "CC0", "day",
-     (84.0, -71.0, 10.65), (3.6, 18.0, -6.4), 31.8, (4, 3)),
+     (80.8, -65.7, 11.9), (-1.2, 19.4, -8.8), 27.5, (4, 3)),   # 北のポスト 6 点と南のポスト 4 点から解いた(平均 1.9 画素)
     ("03_back_stand", "秩父宮ラグビー場_(21776716854).jpg", "Tetsuji Sakakibara", "CC BY-SA 2.0", "day",
      (-3.3, 67.2, 12.8), (1.3, -59.3, 1.6), 31.8, (4, 3)),   # 芝のライン 20 点から最小二乗で解いた(平均 1.2 画素)
     ("04_from_south", "Chichibunomiya_Rugby_Stadium2.jpg", "江戸村のとくぞう", "CC BY-SA 4.0", "day",
