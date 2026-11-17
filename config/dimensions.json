@@ -1,0 +1,115 @@
+{
+  "_comment": "秩父宮ラグビー場(東京都港区北青山)の寸法。単位は m。原点=芝の中心、+X=北北西(バックスタンドを右に見て北スタンドの方向、方位 338.2 度)、+Y=西(メインスタンド側)、+Z=上、芝の面 Z=0。出どころと確かさは docs/reference.md。",
+
+  "site": {
+    "x_axis_azimuth_deg": 338.2,
+    "latitude": 35.672651,
+    "longitude": 139.718350
+  },
+
+  "field": {
+    "_comment": "ラインは競技規則の値。トライラインの位置(±50)は空中写真のゴールポストで確かめた。インゴールは空中写真から(±2 m)",
+    "length": 100.0,
+    "width": 70.0,
+    "in_goal_depth": 16.0,
+    "line_width": 0.1,
+    "line_22m_from_goal": 22.0,
+    "line_10m_from_halfway": 10.0,
+    "line_5m_from_touch": 5.0,
+    "line_15m_from_touch": 15.0,
+    "line_5m_from_goal": 5.0,
+    "dash_length": 5.0,
+    "centre_mark_length": 0.5
+  },
+
+  "goal": {
+    "_comment": "間隔とクロスバーの高さは規則。ポストの高さ 16 m は推定(写真の見た目)。高さを測る物差しにも使っているので、変えたら docs/reference.md の高さも見直す",
+    "post_spacing": 5.6,
+    "crossbar_height": 3.0,
+    "post_height": 12.0,
+    "post_radius_bottom": 0.075,
+    "post_radius_top": 0.045,
+    "crossbar_radius": 0.05,
+    "pad_size": 0.42,
+    "pad_height": 2.0
+  },
+
+  "flags": {
+    "post_height": 1.5,
+    "offset_outside_touch": 2.0,
+    "flag_w": 0.35,
+    "flag_h": 0.28
+  },
+
+  "turf": {
+    "_comment": "天然芝の範囲。空中写真と OpenStreetMap(135.4 x 80)から",
+    "x_min": -70.0,
+    "x_max": 70.0,
+    "y_min": -40.0,
+    "y_max": 40.0,
+    "stripe_width_cross": 5.0,
+    "stripe_width_long": 2.7
+  },
+
+  "walls": {
+    "_comment": "各スタンドの前の壁の位置(空中写真から実測、±1 m)。apron(芝の外の帯)の範囲にも使う",
+    "west_y": 41.5,
+    "east_y": -41.7,
+    "north_x": 70.5,
+    "south_x": -73.3
+  },
+
+  "stands": {
+    "_comment": "各スタンドの断面。局所座標 u=左右、d=前の壁から外へ。W: u=X、E: u=-X、N: u=-Y、S: u=+Y。u0/u1 は d ごとの端の位置 [[d, u], ...] を折れ線でつなぐ(角を落とした平面を書くため)。segments は前から順に rows[段数, 奥行, 蹴上げ] / flat[幅] / rise[高さ]。平面は空中写真から実測、段数は写真から数えた、蹴上げと高さは推定",
+    "west": {
+      "side": "W", "wall": 41.5,
+      "u0": [[0.0, -69.7], [21.9, -69.7], [32.9, -50.4]],
+      "u1": [[0.0, 72.0], [20.5, 72.0], [34.9, 50.0]],
+      "front_wall_h": 1.8,
+      "segments": [["flat", 0.8], ["rows", 17, 0.85, 0.30], ["flat", 1.6], ["rise", 0.4], ["rows", 15, 0.85, 0.33], ["flat", 1.2]],
+      "aisles": 14, "voms": [{"seg": 2, "us": [-57.0, -38.0, -19.0, 0.0, 19.5, 39.0, 58.0]}],
+      "back_parapet": 1.1,
+      "back_block": {"_comment": "後段の上の部屋(記者席・貴賓席)と、その下の躯体。屋根の範囲と同じ長さ", "u0": -49.0, "u1": 49.0,
+                     "d1": 35.5, "room_h": 6.0}
+    },
+    "east": {
+      "side": "E", "wall": -41.7,
+      "u0": [[0.0, -70.0], [7.6, -87.4], [29.6, -87.4], [35.0, -78.0]],
+      "u1": [[0.0, 70.0], [7.0, 88.7], [28.3, 88.7], [34.3, 72.7], [35.0, 72.7]],
+      "front_wall_h": 1.2,
+      "segments": [["flat", 1.0], ["rows", 18, 0.9, 0.23], ["flat", 2.0], ["rise", 0.3], ["rows", 16, 0.9, 0.28], ["flat", 0.8]],
+      "aisles": 16, "voms": [{"seg": 2, "us": [-75.0, -61.0, -38.4, -21.0, 0.0, 20.0, 39.0, 60.0, 74.4]}],
+      "back_parapet": 1.1
+    },
+    "north": {
+      "side": "N", "wall": 70.5,
+      "u0": [[0.0, -33.0]],
+      "u1": [[0.0, 35.7]],
+      "front_wall_h": 1.0,
+      "segments": [["flat", 1.0], ["rows", 8, 0.8, 0.38], ["flat", 1.6], ["rise", 0.3], ["rows", 10, 0.8, 0.42], ["flat", 1.5]],
+      "aisles": 6, "voms": [{"seg": 2, "us": [-28.0, -12.0, 15.0, 31.6]}],
+      "back_parapet": 1.1
+    },
+    "south": {
+      "side": "S", "wall": -73.3,
+      "u0": [[0.0, -36.4]],
+      "u1": [[0.0, 36.5]],
+      "front_wall_h": 1.2,
+      "segments": [["flat", 0.6], ["rows", 6, 0.8, 0.36], ["flat", 1.5], ["rise", 0.4], ["rows", 13, 0.8, 0.45], ["flat", 1.5]],
+      "aisles": 8, "voms": [{"seg": 2, "us": [0.0]}],
+      "back_parapet": 1.1,
+      "back_block": {"_comment": "後ろの通路と外壁。屋根の後ろの端まで", "u0": -36.4, "u1": 36.5, "d1": 21.0, "room_h": 0.0}
+    }
+  },
+
+  "seats": {
+    "_comment": "座席の数え方と出入口の箱。幅は推定",
+    "pitch": 0.45, "aisle_w": 1.1, "edge_w": 0.8, "vom_w": 3.0, "vom_rows": 4
+  },
+
+  "roof": {
+    "_comment": "大きな形だけ(板)。柱と梁は段階 4。平面は空中写真(高い物の倒れは未補正、±3 m)、高さは屋根の影とゴールポストからの推定(±2 m)",
+    "west": {"u0": -49.0, "u1": 49.0, "d0": 14.5, "d1": 35.5, "z_bottom": 19.0, "thickness": 4.2},
+    "south": {"u0": -37.3, "u1": 37.3, "d0": 5.4, "d1": 21.0, "z_bottom": 13.6, "thickness": 0.6}
+  }
+}
