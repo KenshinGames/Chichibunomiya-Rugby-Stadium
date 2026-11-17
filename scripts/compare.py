@@ -22,7 +22,7 @@ ITEMS = [
     ("02_from_back_north", "Chichibunomiya_Rugby1.JPG", "Waka77", "CC0", "day",
      (84.0, -71.0, 10.65), (3.6, 18.0, -6.4), 31.8, (4, 3)),
     ("03_back_stand", "秩父宮ラグビー場_(21776716854).jpg", "Tetsuji Sakakibara", "CC BY-SA 2.0", "day",
-     (-2.0, 67.0, 12.3), (-2.0, -60.0, -5.4), 29, (4, 3)),
+     (-3.3, 67.2, 12.8), (1.3, -59.3, 1.6), 31.8, (4, 3)),   # 芝のライン 20 点から最小二乗で解いた(平均 1.2 画素)
     ("04_from_south", "Chichibunomiya_Rugby_Stadium2.jpg", "江戸村のとくぞう", "CC BY-SA 4.0", "day",
      (-82.2, -4.0, 6.1), (39.3, 7.3, -11.6), 29, (4, 3)),
     ("05_behind_north_posts", "Chichibunomiya_Rugby_Stadium-6.jpg", "江戸村のとくぞう", "CC BY-SA 4.0", "day",
@@ -76,7 +76,7 @@ def main():
     with open(os.path.join(out_d, "README.md"), "w", encoding="utf-8") as f:
         f.write("# 参考写真との比較\n\n")
         f.write("左が参考写真、右がこのモデルを同じ角度から描いたもの。`./run.sh compare` で作り直せる(`--blend` で写真と半透明に重ねた絵も out/compare/ に出る)。\n")
-        f.write("カメラの位置と焦点距離は、写っているゴールポスト(高さ 12 m、間隔 5.6 m)の見かけの大きさと位置から計算して置いた。01 と 02 は数度のずれが残る。見つかった違いは [../remaining.md](../remaining.md)。\n\n")
+        f.write("カメラの位置と焦点距離は、写っているゴールポスト(高さ 12 m、間隔 5.6 m)の見かけの大きさと位置から計算して置いた。03 は芝のライン 20 点から最小二乗で解き直した(平均 1.2 画素)。01 と 02 は数度のずれが残る。見つかった違いは [../remaining.md](../remaining.md)。\n\n")
         f.write("参考写真はすべて Wikimedia Commons のもので、下の作者とライセンスに従って使っている。\n")
         f.write("CC BY-SA の写真を含む比較画像は、同じ CC BY-SA 4.0 で公開する。写真は大きさだけを変えている。\n\n")
         f.write("| 比較画像 | 参考写真(Wikimedia Commons) | 作者 | ライセンス |\n|---|---|---|---|\n")
