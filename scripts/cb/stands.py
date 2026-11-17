@@ -127,8 +127,8 @@ def _rooms(c):
     z0 = layout.top_z(st)
     u0, u1, d1, rh = bb["u0"], bb["u1"], bb["d1"], bb["room_h"]
     df = d0 + 0.6                       # 部屋の前の面
-    # 躯体(地面から部屋の床まで)と部屋の箱
-    mb.box(u0, u1, d0, d1, 0.0, z0, wall)
+    # 躯体(地面から部屋の床まで)と部屋の箱。外側(西)の面は _west_facade で作る
+    _west_facade(mb, st, u0, u1, d0, d1, z0, wall)
     mb.box(u0, u1, df, d1, z0, z0 + rh, dark, bottom=False)
     # 前の面: 腰壁、窓、上の帯
     zs, zw = z0 + 1.3, z0 + rh - 1.0
@@ -148,6 +148,51 @@ def _rooms(c):
     for u in (vu0, vu1):
         mb.box(u - 0.15, u + 0.15, dv, df, z0 + 0.4, z0 + 2.9, wall)
     mb.build("main_rooms", c)
+
+
+FACADE = dict(recess=2.0, low_h=6.0, band=(6.0, 7.4), band_out=1.2, col_step=7.0, col=1.0,
+              stair_w=10.0, stair_run=8.0, stair_steps=15, stair_rise=0.28)
+
+
+def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
+    """メインスタンドの裏(西)の外壁。写真 031・048・005(正面入場口から見る): 1 階は奥の暗い吹き抜けと角柱の列、
+    6〜7.4 m にベージュの通路の帯、その上に小窓のある壁、中央に広い階段。寸法はすべて推定(FACADE)。"""
+    F = FACADE
+    dr = d1 - F["recess"]
+    beige = M.get("facade_beige")
+    shade = M.get("concourse_dark")
+    conc = M.get("concrete")
+    # 1 階: 吹き抜けの奥の壁(暗い)までの躯体、2 階より上は外の面まで
+    mb.box(u0, u1, d0, dr, 0.0, F["low_h"], wall)
+    mb.face(((u1, dr + 0.02, 0.0), (u0, dr + 0.02, 0.0), (u0, dr + 0.02, F["low_h"]), (u1, dr + 0.02, F["low_h"])), shade)
+    mb.box(u0, u1, d0, d1, F["low_h"], z0, wall)
+    # 1 階の天井(吹き抜けの上の板の下面)
+    mb.face(((u0, dr, F["low_h"] - 0.01), (u1, dr, F["low_h"] - 0.01), (u1, d1, F["low_h"] - 0.01), (u0, d1, F["low_h"] - 0.01)), shade)
+    # 角柱
+    n = int((u1 - u0) // F["col_step"])
+    for i in range(n + 1):
+        u = u0 + 0.5 + (u1 - u0 - 1.0) * i / n
+        mb.box(u - F["col"] / 2, u + F["col"] / 2, d1 - F["col"], d1, 0.0, F["low_h"], conc)
+    # ベージュの通路の帯(外へ張り出す)
+    b0, b1 = F["band"]
+    mb.box(u0 - 0.5, u1 + 0.5, d1 - 0.2, d1 + F["band_out"], b0, b1, beige)
+    # 上の壁の小窓
+    k = int((u1 - u0) // 3.5)
+    for i in range(k):
+        u = u0 + 1.75 + 3.5 * i
+        mb.box(u - 0.6, u + 0.6, d1, d1 + 0.04, b1 + 1.4, b1 + 2.4, shade)
+    # 中央の大階段(外から 2 階の帯の下まで上がる)。両脇に腰壁
+    w, run, ns, rz = F["stair_w"], F["stair_run"], F["stair_steps"], F["stair_rise"]
+    t = run / ns
+    for j in range(ns):
+        da = d1 + run - (j + 1) * t
+        mb.box(-w / 2, w / 2, da, da + t, 0.0, (j + 1) * rz, conc)
+    top = ns * rz
+    mb.box(-w / 2, w / 2, dr, d1, 0.0, top, conc)               # 上の踊り場(吹き抜けの奥まで)
+    for x in (-w / 2 - 0.3, w / 2):
+        mb.face(((x, d1 + run, 0.0), (x, d1 + run, 1.0), (x, d1, top + 1.0), (x, d1, 0.0)), wall)
+        mb.face(((x + 0.3, d1, 0.0), (x + 0.3, d1, top + 1.0), (x + 0.3, d1 + run, 1.0), (x + 0.3, d1 + run, 0.0)), wall)
+        mb.face(((x, d1 + run, 1.0), (x + 0.3, d1 + run, 1.0), (x + 0.3, d1, top + 1.0), (x, d1, top + 1.0)), wall)
 
 
 def _south_back(c):

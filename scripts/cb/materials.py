@@ -482,6 +482,8 @@ define("vom_blue", color=srgb(176, 198, 214), rough=0.7)
 define("vom_yellow", color=srgb(222, 204, 128), rough=0.7)
 define("vom_red", color=srgb(196, 44, 40), rough=0.6)
 define("jingu_seats", color=srgb(46, 92, 168), rough=0.6)
+define("facade_beige", color=srgb(196, 186, 160), rough=0.8)    # メインの裏の通路の帯(写真 048・005)
+define("concourse_dark", color=srgb(46, 48, 50), rough=0.9)     # スタンドの下の暗い吹き抜け
 define("nat_seats", color=srgb(112, 118, 96), rough=0.7)        # 国立競技場の客席(白・黄緑・深緑・茶のまだら。遠目の平均)
 define("wood_louver", color=srgb(146, 108, 72), rough=0.8)      # 国立競技場の外の軒(木のルーバー)
 define("track_red", color=srgb(168, 74, 56), rough=0.85)        # 陸上のトラック
