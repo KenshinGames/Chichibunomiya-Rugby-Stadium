@@ -353,6 +353,80 @@ def _noisy(name, color, rough, scale=1.5, amount=0.25, bump=0.0, metal=0.0):
     return build
 
 
+def _concrete(name, color, rough=0.85, bump=0.15, patch=0.14, streak=0.16):
+    """古いコンクリート(1947 年開場、何度も直した躯体)。大きなまだら、細かいむら、縦の雨だれの 3 つを重ねる。"""
+    def build():
+        m = _principled(name, color, rough=rough)
+        nt = m.node_tree
+        N, L = nt.nodes, nt.links
+        b = N.get("Principled BSDF")
+        geo = N.new("ShaderNodeNewGeometry")
+
+        def noise(scale, vec=None, detail=6.0):
+            n = N.new("ShaderNodeTexNoise")
+            n.inputs["Scale"].default_value = scale
+            n.inputs["Detail"].default_value = detail
+            n.inputs["Roughness"].default_value = 0.6
+            L.new(vec if vec is not None else geo.outputs["Position"], n.inputs["Vector"])
+            return n.outputs["Fac"]
+
+        def rng(v, lo, hi, f0=0.3, f1=0.7):
+            r = N.new("ShaderNodeMapRange")
+            r.inputs["From Min"].default_value = f0
+            r.inputs["From Max"].default_value = f1
+            r.inputs["To Min"].default_value = lo
+            r.inputs["To Max"].default_value = hi
+            L.new(v, r.inputs["Value"])
+            return r.outputs["Result"]
+
+        def mul(a, bb):
+            n = N.new("ShaderNodeMath"); n.operation = "MULTIPLY"
+            L.new(a, n.inputs[0]); L.new(bb, n.inputs[1])
+            return n.outputs[0]
+        big = rng(noise(0.06), 1.0 - patch, 1.0 + patch * 0.5)
+        mid = rng(noise(0.9), 0.93, 1.05)
+        mp = N.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (0.6, 0.6, 0.05)
+        L.new(geo.outputs["Position"], mp.inputs["Vector"])
+        st = rng(noise(4.0, mp.outputs["Vector"], 4.0), 1.0 - streak, 1.0, 0.45, 0.75)
+        f = mul(mul(big, mid), st)
+        c = N.new("ShaderNodeMix"); c.data_type = "RGBA"; c.blend_type = "MULTIPLY"
+        c.inputs["Factor"].default_value = 1.0
+        c.inputs["A"].default_value = color
+        L.new(f, c.inputs["B"])
+        L.new(c.outputs["Result"], b.inputs["Base Color"])
+        rr = rng(noise(0.9), rough - 0.08, rough + 0.08)
+        L.new(rr, b.inputs["Roughness"])
+        bp = N.new("ShaderNodeBump")
+        bp.inputs["Strength"].default_value = bump
+        bp.inputs["Distance"].default_value = 0.01
+        L.new(noise(40.0), bp.inputs["Height"])
+        L.new(bp.outputs["Normal"], b.inputs["Normal"])
+        return m
+    return build
+
+
+def _seat(name, color):
+    """座席。1 脚ごとに色を少し変える(日焼けと取り替えの差。Object Info の Random は点に並べた 1 脚ごとに変わる)。"""
+    def build():
+        m = _principled(name, color, rough=0.5, spec=0.35)
+        nt = m.node_tree
+        N, L = nt.nodes, nt.links
+        b = N.get("Principled BSDF")
+        oi = N.new("ShaderNodeObjectInfo")
+        r = N.new("ShaderNodeMapRange")
+        r.inputs["To Min"].default_value = 0.86
+        r.inputs["To Max"].default_value = 1.06
+        L.new(oi.outputs["Random"], r.inputs["Value"])
+        c = N.new("ShaderNodeMix"); c.data_type = "RGBA"; c.blend_type = "MULTIPLY"
+        c.inputs["Factor"].default_value = 1.0
+        c.inputs["A"].default_value = color
+        L.new(r.outputs["Result"], c.inputs["B"])
+        L.new(c.outputs["Result"], b.inputs["Base Color"])
+        return m
+    return build
+
+
 def _scrum_tiles():
     """スクラムスクリーンの下地。菱形のタイルを灰色の濃淡とガラスで塗り分ける(面は X 一定)。"""
     m = _principled("scrum_tiles", (0.4, 0.4, 0.4, 1), rough=0.45)
@@ -494,9 +568,11 @@ _builders = {
     "leaf_b": _noisy("leaf_b", srgb(70, 108, 46), 0.9, scale=1.5, amount=0.35),
     "mountain": _noisy("mountain", srgb(44, 64, 66), 1.0, scale=0.004, amount=0.15),
     "grass": _grass,
-    "concrete": _noisy("concrete", srgb(150, 148, 142), 0.85, scale=0.8, amount=0.10, bump=0.15),
-    "concrete_dark": _noisy("concrete_dark", srgb(72, 72, 74), 0.9, scale=0.8, amount=0.12, bump=0.15),
-    "concrete_light": _noisy("concrete_light", srgb(186, 184, 178), 0.8, scale=0.8, amount=0.07, bump=0.1),
+    "concrete": _concrete("concrete", srgb(150, 148, 142)),
+    "concrete_dark": _concrete("concrete_dark", srgb(72, 72, 74), rough=0.9),
+    "concrete_light": _concrete("concrete_light", srgb(180, 178, 172), rough=0.8, patch=0.12, streak=0.12),
+    "seat_blue": _seat("seat_blue", srgb(70, 150, 212)),
+    "seat_yellow": _seat("seat_yellow", srgb(206, 186, 104)),
     "asphalt": _noisy("asphalt", srgb(92, 92, 94), 0.95, scale=0.5, amount=0.15, bump=0.2),
     "paving_brick": _brick_paving,
     "paving_brick_plain": _noisy("paving_brick", srgb(140, 92, 76), 0.9, scale=0.6, amount=0.12, bump=0.15),
@@ -518,8 +594,6 @@ define("pad_red", color=srgb(196, 30, 36), rough=0.55)
 define("flag_red", color=srgb(214, 36, 40), rough=0.7)
 define("seat_red", color=srgb(200, 22, 16), rough=0.6, spec=0.3)
 # 秩父宮: 水色寄りの青と、からし色の黄(写真の日なたの青は sRGB で約 (119,175,219))
-define("seat_blue", color=srgb(70, 150, 212), rough=0.55, spec=0.3)
-define("seat_yellow", color=srgb(206, 186, 104), rough=0.55, spec=0.3)
 define("vom_blue", color=srgb(176, 198, 214), rough=0.7)
 define("vom_yellow", color=srgb(222, 204, 128), rough=0.7)
 define("vom_red", color=srgb(196, 44, 40), rough=0.6)

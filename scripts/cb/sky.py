@@ -8,8 +8,10 @@ from mathutils import Vector
 from . import config
 
 # 昼の太陽: 午後の南西の日(バックスタンドと映像装置に日が当たり、メインスタンドの中は屋根の影)
-DAY_SUN_AZIMUTH = 228.0
-DAY_SUN_ELEVATION = 47.0
+# 秩父宮: ラグビーのシーズン(11 月中旬)の 14 時ごろの東京の太陽(方位 約 215°、高さ 約 30°)。
+# メインスタンドの影が芝にかかり、バックスタンドは斜めから日が当たる(花園の 228°/47° のままだと正面から当たって平板だった)
+DAY_SUN_AZIMUTH = float(os.environ.get("SUN_AZ", 215.0))
+DAY_SUN_ELEVATION = float(os.environ.get("SUN_EL", 30.0))
 
 
 def sun_vector(az_deg, el_deg):
