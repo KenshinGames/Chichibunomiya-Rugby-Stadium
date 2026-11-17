@@ -17,7 +17,13 @@ def build():
 
 
 def column_us(r):
-    """柱の u の位置(両端を含む)。"""
+    """柱の u の位置(両端を含む)。"col_u0" と "col_step" があれば、そこから等間隔に屋根の端まで(写真で数えた並び)。"""
+    if "col_step" in r:
+        out, u = [], r["col_u0"]
+        while u <= r["u1"] - 0.3:
+            out.append(u)
+            u += r["col_step"]
+        return out
     n = r["bays"]
     a, b = r["u0"] + 0.8, r["u1"] - 0.8
     return [a + (b - a) * i / n for i in range(n + 1)]

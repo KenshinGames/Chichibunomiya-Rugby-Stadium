@@ -163,7 +163,10 @@
       "bays": 8,
       "beam_depth_front": 0.35,
       "beam_depth_col": 0.7,
-      "beam_w": 0.3
+      "beam_w": 0.3,
+      "col_u0": -36.9,
+      "col_step": 7.8,
+      "_comment_cols": "柱は写真 05 で数えた: Y = −36.9 から 7.8 m おきに 10 本(中央 Y = 0 には柱がない。比較 04 の写真にも柱が写らない)。前後の位置 col_d は推定"
     }
   },
   "screen": {
