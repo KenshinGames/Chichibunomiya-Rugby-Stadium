@@ -262,14 +262,16 @@ def _inside(pt, poly):
 
 
 def tree_points(S):
-    """木の位置: OSM の木、並木(8 m ごと)、林と公園の中(面積に応じて乱数で)、大きな道の両側(12 m ごと)。"""
+    """木の位置と大きさの種類 [(x, y, kind)]: OSM の木、並木(8 m ごと)、林と公園の中(面積に応じて乱数で)、
+    大きな道の両側(12 m ごと)、空中写真の濃い緑(trees_aerial)。kind で高さを変える(TREE_H)。"""
     rnd = random.Random(1947)
-    pts = [tuple(p) for p in S["trees"]]
+    pts = [(p[0], p[1], "osm") for p in S["trees"]]
+    pts += [(p[0], p[1], "aerial") for p in S.get("trees_aerial", [])]
     for row in S["tree_rows"]:
         for p, q in zip(row, row[1:]):
             L = math.dist(p, q)
             k = max(1, int(L / 8.0))
-            pts += [(p[0] + (q[0] - p[0]) * i / k, p[1] + (q[1] - p[1]) * i / k) for i in range(k)]
+            pts += [(p[0] + (q[0] - p[0]) * i / k, p[1] + (q[1] - p[1]) * i / k, "row") for i in range(k)]
     for a in S["areas"]:
         if a["kind"] not in ("wood", "lawn"):
             continue
@@ -281,7 +283,7 @@ def tree_points(S):
         for _ in range(min(400, int(A / dens))):
             p = (rnd.uniform(min(xs), max(xs)), rnd.uniform(min(ys), max(ys)))
             if _inside(p, poly):
-                pts.append(p)
+                pts.append((p[0], p[1], a["kind"]))
     for r in S["roads"]:
         if r["kind"] not in ("trunk", "primary", "secondary"):
             continue
@@ -294,7 +296,7 @@ def tree_points(S):
             for i in range(int(L / 12.0)):
                 t = (i + 0.5) * 12.0 / L
                 x, y = p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t
-                pts += [(x + nx * off, y + ny * off), (x - nx * off, y - ny * off)]
+                pts += [(x + nx * off, y + ny * off, "road"), (x - nx * off, y - ny * off, "road")]
     # 建物の中に入った木は捨てる(大きな建物だけ調べる)
     big = [b["poly"] for b in S["buildings"] if b["h"] > 12]
     boxes = [(min(p[0] for p in q), max(p[0] for p in q), min(p[1] for p in q), max(p[1] for p in q)) for q in big]
@@ -304,12 +306,17 @@ def tree_points(S):
             continue
         hit = False
         for q, (x0, x1, y0, y1) in zip(big, boxes):
-            if x0 <= p[0] <= x1 and y0 <= p[1] <= y1 and _inside(p, q):
+            if x0 <= p[0] <= x1 and y0 <= p[1] <= y1 and _inside(p[:2], q):
                 hit = True
                 break
         if not hit:
             out.append(p)
     return out
+
+
+# 木の高さ(m)の幅。神宮外苑の林・並木(イチョウ、ケヤキ、写真 03 の左の針葉樹)は 15〜22 m、街路樹は低め(推定)
+TREE_H = {"wood": (13.0, 21.0), "row": (14.0, 20.0), "aerial": (12.0, 20.0), "lawn": (9.0, 16.0),
+          "osm": (9.0, 16.0), "road": (7.0, 12.0)}
 
 
 def _trees(S, c):
@@ -318,8 +325,8 @@ def _trees(S, c):
     trunk = M.get("trunk")
     leaves = [M.get("leaf_a"), M.get("leaf_b")]
     pts = tree_points(S)
-    for (x, y) in pts:
-        h = rnd.uniform(7.0, 14.0)
+    for (x, y, kind) in pts:
+        h = rnd.uniform(*TREE_H.get(kind, (7.0, 14.0)))
         r = h * rnd.uniform(0.25, 0.36)
         mb.cyl((x, y, 0), (x, y, h * 0.55), 0.22, trunk, n=5)
         lf = leaves[rnd.randrange(2)]

@@ -275,4 +275,5 @@ def main():
         print("  高い: %-22s %5.1f m (%s) 中心 X=%.0f Y=%.0f" % (b["name"] or b["id"], b["h"], b["src"], c[0], c[1]))
 
 
-main()
+if __name__ == "__main__":
+    main()

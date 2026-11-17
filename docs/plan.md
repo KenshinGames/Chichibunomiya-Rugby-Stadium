@@ -31,6 +31,9 @@ scripts/cb/              部品。pitch(2)、stands(3)、roof(4)、seats・detai
                          layout.py が断面を段の一覧に直す。materials.py に色
 tools/osm_measure.py     OSM の外形をこの座標に直して表示する
 tools/osm_surroundings.py refs/osm/*.json → config/surroundings.json
+tools/aerial_trees.py    空中写真の濃い緑に木を足す(surroundings.json の trees_aerial)
+tools/lines_overlay.py   写真に模型のライン・ポスト・スタンドの線を投影する(カメラ合わせ)
+tools/fit_cam_*.py       比較写真のカメラを規定の寸法の点から最小二乗で解く
 refs/                    空中写真・参考写真・公式の座席図・OSM の生データ(git に入れない)
 out/                     描いた画像(git に入れない)
 ```
