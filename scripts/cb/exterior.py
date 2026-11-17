@@ -363,17 +363,9 @@ TREE_H = {"wood": (13.0, 21.0), "row": (14.0, 20.0), "aerial": (12.0, 20.0), "la
 
 
 def _trees(S, c):
+    from . import trees
+    from .util import coll as _coll
     rnd = random.Random(1953)
-    mb = MB()
-    trunk = M.get("trunk")
-    leaves = [M.get("leaf_a"), M.get("leaf_b")]
     pts = tree_points(S)
-    for (x, y, kind) in pts:
-        h = rnd.uniform(*TREE_H.get(kind, (7.0, 14.0)))
-        r = h * rnd.uniform(0.25, 0.36)
-        mb.cyl((x, y, 0), (x, y, h * 0.55), 0.22, trunk, n=5)
-        lf = leaves[rnd.randrange(2)]
-        _blob(mb, x, y, h * 0.7, r, h * 0.34, lf)
-        _blob(mb, x + r * 0.4, y - r * 0.3, h * 0.58, r * 0.7, h * 0.24, lf)
-    print("[exterior] 木 %d 本" % len(pts))
-    mb.build("trees", c, smooth=True)
+    hs = [rnd.uniform(*TREE_H.get(kind, (7.0, 14.0))) for (_, _, kind) in pts]
+    trees.build_trees(pts, hs, _coll("trees", c))
