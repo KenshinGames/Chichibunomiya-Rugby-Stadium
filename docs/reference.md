@@ -94,7 +94,7 @@
 | 座席の色 | 西と東の中央(\|u\| < 30 m)が黄色、ほかは青。北は座席のない灰色の段 | 公式(図)+写真 | 座席図、写真 100・057 |
 | 座席の色の値 | 青 sRGB (70,150,212)、黄 (206,186,104) | 推定 | 写真の日なたの青は (119,175,219)〜(160,199,220)。初めは描くと明るくなると考えて (40,122,196) にしたが、比較 02 の手前で暗すぎたので 2026-11-18 に明るくした。黄は写真 042 の近くの席(曇りで (161,146,112))に合わせて鮮やかさを落とした |
 | 出入口の箱の色 | 青い区画は薄い水色、黄色い区画は薄い黄色、北は赤 | 写真 | 写真 038・100・Asian Rugby-3 |
-| 映像装置 | 幅 16 m、下端 8.4 m、上端 17.2 m、北スタンド中央の後ろ(X 86〜87.6)。左 3 割が時計 | 実測 ±1 | 写真 050 で奥のポストを物差しに。平面は空中写真の白い板と影 |
+| 映像装置 | 幅 16 m、下端 8.4 m、上端 17.2 m、北スタンド中央の後ろ(X 86〜87.6)。左 3 割が時計、右は黒い LED の得点表示(写真 06、2018 年) | 実測 ±1 | 写真 050 で奥のポストを物差しに。平面は空中写真の白い板と影。左右の位置は比較 04 の解いたカメラで確かめた |
 | 照明塔 | 北西 (75.1, 43.9) 30.3 m、南西 (−81.5, 44) 31 m、北東 (45.8, −82) 31 m、南東 (−48, −82) 31 m | 推定 ±3〜5 | 東の 2 基は写真 100(比較 03)の向きと灯具の高さから(Y = −82 は仮定)。2026-11-17 夜に比較 03 のカメラを芝のラインから解き直したら、前の値(25 m、南東 X −58)はずれたカメラに合わせたものだった。北西は比較 04・01 の解いたカメラからの 2 本の向きの交点(±1.5 m)。南西は比較 02 の向きの線の上で北西と同じ角の位置(±5 m)。4 基とも上端 30〜31 m(2026-11-18) |
 
 ## 5.6 周りの建物と道(OpenStreetMap から)
@@ -129,6 +129,7 @@
 | 03 | [秩父宮ラグビー場 (21776716854).jpg](https://commons.wikimedia.org/wiki/File:秩父宮ラグビー場_(21776716854).jpg) | Tetsuji Sakakibara | CC BY-SA 2.0 | 2015-10 |
 | 04 | [Chichibunomiya Rugby Stadium2.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium2.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 | 2016-07 |
 | 05 | [Chichibunomiya Rugby Stadium-6.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium-6.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 | 2018-02 |
+| 06 | [Chichibunomiya Rugby Stadium-w3.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium-w3.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 | 2018-04 |
 
 ほかに見たもの(段階 4 以降で使う): 正面入場口と外観(Chichibunomiya Rugby Stadium 2019d、Stadium1 など)、北スタンドと映像装置(Asian Rugby-3、Stadium-w3)、
 夜(Chichibunomiya2.jpg、2007)、空から(Meiji Jingu Stadium aerial view.jpg、Arne Müseler、CC BY-SA 3.0 de)。一覧と GPS は `refs/photos/meta.json`。
