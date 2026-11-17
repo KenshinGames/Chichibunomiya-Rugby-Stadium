@@ -19,53 +19,99 @@ def rail_u(mb, u0, u1, d, z, h=1.1, mat=None, post=1.5):
     mb.cyl((u0, d, z + h * 0.5), (u1, d, z + h * 0.5), 0.016, mat, n=5)
 
 
+def rail_line(mb, p0, p1, h=1.0, mat=None, post=1.5):
+    """p0 から p1(局所座標の床の点、傾いていてよい)に沿う手すり。"""
+    mat = mat or M.get("aluminium")
+    L = sum((a - b) ** 2 for a, b in zip(p0, p1)) ** 0.5
+    if L < 0.3:
+        return
+    n = max(1, round(L / post))
+    for i in range(n + 1):
+        q = [a + (b - a) * i / n for a, b in zip(p0, p1)]
+        mb.cyl(q, (q[0], q[1], q[2] + h), 0.022, mat, n=6)
+    top = [(p0[0], p0[1], p0[2] + h), (p1[0], p1[1], p1[2] + h)]
+    mb.cyl(top[0], top[1], 0.028, mat, n=6)
+
+
+VOM_DROP = 1.2      # 出入口の床は横通路から奥へ下がる(奥の口の高さを取るため。推定)
+
+
 def _vom_mat(name, u):
-    if name == "north":
+    if layout.base_name(name) == "north":
         return M.get("vom_red")
     return M.get("vom_yellow") if seats.seat_color(name, u) == "yellow" else M.get("vom_blue")
+
+
+def _vom(mb, name, T, v):
+    """出入口: 横通路の後ろの段を切った上の開いた穴。両脇は段ごとの低いコンクリートの壁(段+0.9 m)と手すり、
+    床は奥へ下がり、奥の壁に暗い口と色の枠、口の上の手すりにゲート番号の札。写真 Rugby2・Stadium-4・03。"""
+    conc, wall = M.get("concrete"), M.get("concrete_light")
+    col = _vom_mat(name, (v["u0"] + v["u1"]) / 2)
+    u0, u1, d0, d1, zf = v["u0"], v["u1"], v["d0"], v["d1"], v["zf"]
+    zb = zf - VOM_DROP
+    rows = [t for t in T if d0 - 1e-6 <= t["d0"] < d1 - 1e-6]
+    nxt = [t for t in T if t["d0"] >= d1 - 1e-6]
+    zn = nxt[0]["z"] if nxt else rows[-1]["z"] + rows[-1]["riser"]
+    mb.face(((u0, d0, zf + 0.01), (u1, d0, zf + 0.01), (u1, d1 - 0.2, zb), (u0, d1 - 0.2, zb)), conc)
+    for t in rows:
+        top = t["z"] + 0.9
+        mb.box(u0 - 0.2, u0, t["d0"], t["d1"], zb, top, wall)
+        mb.box(u1, u1 + 0.2, t["d0"], t["d1"], zb, top, wall)
+    for u in (u0 - 0.1, u1 + 0.1):
+        rail_line(mb, (u, d0 + 0.1, rows[0]["z"] + 0.9), (u, d1 - 0.1, rows[-1]["z"] + 0.9), h=0.5)
+    # 奥の壁と口
+    mb.box(u0 - 0.2, u1 + 0.2, d1 - 0.2, d1, zb, zn, wall)
+    hm = min(2.3, zn - zb - 0.35)
+    mb.box(u0 + 0.35, u1 - 0.35, d1 - 0.23, d1 - 0.2, zb, zb + hm, M.get("black"))
+    for (x0, x1) in ((u0 + 0.15, u0 + 0.35), (u1 - 0.35, u1 - 0.15)):
+        mb.box(x0, x1, d1 - 0.26, d1 - 0.2, zb, zb + hm + 0.2, col)
+    mb.box(u0 + 0.15, u1 - 0.15, d1 - 0.26, d1 - 0.2, zb + hm, zb + hm + 0.2, col)
+    # 口の上: 後ろの列の前の手すりと、ゲート番号の札
+    rail_u(mb, u0 - 0.2, u1 + 0.2, d1 - 0.1, zn, h=0.9)
+    um = (u0 + u1) / 2
+    mb.box(um - 0.4, um + 0.4, d1 - 0.16, d1 - 0.12, zn + 0.25, zn + 0.75, col)
+    mb.box(um - 0.32, um + 0.32, d1 - 0.17, d1 - 0.16, zn + 0.31, zn + 0.69, M.get("sign_white"))
 
 
 def build():
     c = coll("details")
     sc = config.load()["seats"]
-    for name in ("west", "east", "north", "south"):
+    for name in layout.names():
         st = layout.stand(name)
         xf = layout.xf(name)
         T = layout.treads(st)
         V = layout.voms(st)
-        A = layout.aisles(st)
-        w = sc["aisle_w"]
+        AU = layout.aisle_us(st)
+        w, ew = sc["aisle_w"], sc["edge_w"]
 
-        # 縦通路: 少し明るいコンクリートの帯と、蹴上げを半分に割る小段
+        # 縦通路: 少し明るいコンクリートの帯と、蹴上げを半分に割る小段。端の通路は斜めの縁に沿わせる
         mb = MB(xf)
         step = M.get("concrete_light")
         for t in T:
             if t["kind"] != "row":
                 continue
-            a, b = layout.u_range(st, t["d0"])
-            lanes = [(u - w / 2, u + w / 2) for u in A[1:-1]]
-            lanes += [(a, a + sc["edge_w"]), (b - sc["edge_w"], b)]
-            for (l0, l1) in lanes:
-                um = (l0 + l1) / 2
+            dA, dB = t["d0"], t["d1"] - 0.42
+            a0, b0 = layout.u_range(st, dA)
+            a1, b1 = layout.u_range(st, dB)
+            if min(b0 - a0, b1 - a1) < 2 * ew + 0.5:
+                continue
+            lanes = [((u - w / 2, u + w / 2), (u - w / 2, u + w / 2)) for u in AU
+                     if a0 + ew < u < b0 - ew and a1 + ew < u < b1 - ew]
+            lanes += [((a0, a0 + ew), (a1, a1 + ew)), ((b0 - ew, b0), (b1 - ew, b1))]
+            for (l0a, l1a), (l0b, l1b) in lanes:
+                um = (l0a + l1a) / 2
                 if any(v["u0"] - 0.3 < um < v["u1"] + 0.3 and v["d0"] - 1e-6 <= t["d0"] < v["d1"] - 1e-6 for v in V):
                     continue
-                mb.rect(l0, l1, t["d0"], t["d1"] - 0.42, t["z"] + 0.006, step)
-                mb.box(l0, l1, t["d1"] - 0.42, t["d1"], t["z"], t["z"] + t["riser"] / 2, step, bottom=False)
-        mb.build("aisles_" + name, c)
+                zl = t["z"] + 0.006
+                mb.face(((l0a, dA, zl), (l1a, dA, zl), (l1b, dB, zl), (l0b, dB, zl)), step)
+                mb.box(l0b, l1b, dB, t["d1"], t["z"], t["z"] + t["riser"] / 2, step, bottom=False)
+        if not mb.empty():
+            mb.build("aisles_" + name, c)
 
-        # 出入口の箱: 両脇の壁、後ろの壁、上の板、床、奥の暗い口
+        # 出入口
         mb = MB(xf)
         for v in V:
-            m = _vom_mat(name, (v["u0"] + v["u1"]) / 2)
-            for (x0, x1) in ((v["u0"] - 0.2, v["u0"]), (v["u1"], v["u1"] + 0.2)):
-                mb.box(x0, x1, v["d0"], v["d1"], v["zf"], v["ztop"], m)
-            mb.box(v["u0"] - 0.2, v["u1"] + 0.2, v["d1"] - 0.2, v["d1"], v["zf"], v["ztop"], m)
-            mb.box(v["u0"] - 0.2, v["u1"] + 0.2, v["d0"] + 0.6, v["d1"], v["ztop"] - 0.12, v["ztop"], m)
-            mb.rect(v["u0"], v["u1"], v["d0"], v["d1"] - 0.2, v["zf"] + 0.01, M.get("concrete"))
-            mb.box(v["u0"] + 0.35, v["u1"] - 0.35, v["d1"] - 0.23, v["d1"] - 0.2, v["zf"], v["zf"] + 2.2, M.get("black"))
-            # ゲート番号の白い札(番号は段階 6)
-            mb.box((v["u0"] + v["u1"]) / 2 - 0.35, (v["u0"] + v["u1"]) / 2 + 0.35, v["d1"] - 0.25, v["d1"] - 0.22,
-                   v["zf"] + 2.4, v["zf"] + 2.9, M.get("sign_white"))
+            _vom(mb, name, T, v)
         if not mb.empty():
             mb.build("voms_" + name, c)
 
@@ -77,7 +123,10 @@ def build():
         mids = flats[1:-1] if T[0]["kind"] == "flat" else flats[:-1]
         for t in mids:
             a, b = layout.u_range(st, t["d0"])
-            cuts = [(u - w / 2, u + w / 2) for u in A[1:-1]]
-            for (x0, x1) in layout.subtract(a + sc["edge_w"], b - sc["edge_w"], cuts):
+            if b - a < 2 * ew + 0.5:
+                continue
+            cuts = [(u - w / 2, u + w / 2) for u in AU]
+            for (x0, x1) in layout.subtract(a + ew, b - ew, cuts):
                 rail_u(mb, x0 + 0.05, x1 - 0.05, t["d0"] + 0.08, t["z"], h=1.0)
-        mb.build("rails_" + name, c, smooth=True)
+        if not mb.empty():
+            mb.build("rails_" + name, c, smooth=True)

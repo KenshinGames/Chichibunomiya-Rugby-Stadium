@@ -5,12 +5,9 @@
 from . import layout, materials as M
 from .util import MB, coll
 
-STANDS = ("west", "east", "north", "south")
-
-
 def build():
     c = coll("stands")
-    for name in STANDS:
+    for name in layout.names():
         _mass(name, c)
     _rooms(c)
     _south_back(c)
@@ -24,7 +21,9 @@ def _spans(st, d0, d1):
 
 def _pieces(st, d, cuts):
     a, b = layout.u_range(st, d)
-    return layout.subtract(a, b, cuts)
+    if b - a < 1e-6:
+        return []
+    return [(p, q) for (p, q) in layout.subtract(a, b, cuts) if q - p > 1e-6]
 
 
 def _mass(name, c):
@@ -45,7 +44,12 @@ def _mass(name, c):
             for (p, q) in _pieces(st, d0, cuts):
                 mb.face(((p, d0, zprev), (q, d0, zprev), (q, d0, z), (p, d0, z)), wall if i == 0 else conc)
         for (da, db) in _spans(st, d0, d1):
+            if layout.width(st, (da + db) / 2) < 1e-6:
+                continue                      # 角のブロックで、この深さは平面の外
             A, B = _pieces(st, da, cuts), _pieces(st, db, cuts)
+            if not A or not B:                # 多角形の頂点で幅 0 になる側は点にする
+                m = layout.u_range(st, da if not A else db)[0]
+                A, B = (A or [(m, m)] * len(B)), (B or [(m, m)] * len(A))
             for (pa, qa), (pb, qb) in zip(A, B):
                 mb.face(((pa, da, z), (qa, da, z), (qb, db, z), (pb, db, z)), conc)
             aa, ba = layout.u_range(st, da)
@@ -56,10 +60,59 @@ def _mass(name, c):
     dE = T[-1]["d1"]
     aE, bE = layout.u_range(st, dE)
     ph = st.get("back_parapet", 0.0)
-    mb.face(((bE, dE, 0), (aE, dE, 0), (aE, dE, zprev + ph), (bE, dE, zprev + ph)), wall)
-    if ph:
-        mb.box(aE, bE, dE - 0.2, dE, zprev, zprev + ph, wall)
+    if bE - aE > 0.05:
+        mb.face(((bE, dE, 0), (aE, dE, 0), (aE, dE, zprev + ph), (bE, dE, zprev + ph)), wall)
+        if ph:
+            mb.box(aE, bE, dE - 0.2, dE, zprev, zprev + ph, wall)
+    if "_poly" in st:
+        _edge_parapets(name, st, mb, ph, wall)
     mb.build("stand_" + name, c)
+
+
+def _edge_parapets(name, st, mb, ph, wall):
+    """角で切った平面の外周のうち、スタンド全体の外に面する辺(端の壁、後ろの角の斜めの辺、角の前の斜めの辺)に
+    手すりを立てる(壁にすると写真 01 の撮影位置の前をふさぐ)。高さはその場所の段+1.0 m。
+    折れ目(隣と共有する辺)、前の壁、後ろの壁(上で腰壁を作る)には立てない。"""
+    from mathutils import Vector
+    T = layout.treads(st)
+    base = layout.base_name(name)
+    P = layout.config.load()["stands"][base]
+    to_parent = layout.xf(base).inverted() @ layout.xf(name)
+    dE = layout.depth(P)
+
+    def in_whole(u, d):
+        q = to_parent @ Vector((u, d, 0.0))
+        return 0.0 <= q[1] <= dE and layout._edge(P["u0"], q[1]) <= q[0] <= layout._edge(P["u1"], q[1]), q[1]
+
+    alu = M.get("aluminium")
+    poly = st["_poly"]
+    n = len(poly)
+    for i in range(n):
+        (pu, pd), (qu, qd) = poly[i], poly[(i + 1) % n]
+        L = ((qu - pu) ** 2 + (qd - pd) ** 2) ** 0.5
+        if L < 0.5:
+            continue
+        mu, md = (pu + qu) / 2, (pd + qd) / 2
+        nu, nd = (qd - pd) / L, -(qu - pu) / L
+        inside_a, _ = in_whole(mu + nu * 0.6, md + nd * 0.6)
+        inside_b, _ = in_whole(mu - nu * 0.6, md - nd * 0.6)
+        if inside_a and inside_b:
+            continue                          # 折れ目
+        _, dpar = in_whole(mu, md)
+        if dpar < 0.5 or dpar > dE - 0.3:
+            continue                          # 前の壁と後ろの壁
+        k = max(1, int(L / 0.9 + 0.5))
+        for j in range(k):
+            u0, d0 = pu + (qu - pu) * j / k, pd + (qd - pd) * j / k
+            u1, d1 = pu + (qu - pu) * (j + 1) / k, pd + (qd - pd) * (j + 1) / k
+            dm = (d0 + d1) / 2
+            tz = [t for t in T if t["d0"] - 1e-6 <= dm < t["d1"] + 1e-6]
+            if not tz:
+                continue
+            z = tz[0]["z"] + 1.0
+            mb.cyl((u0, d0, z), (u1, d1, z), 0.028, alu, n=6)
+            if j % 2 == 0:
+                mb.cyl((u0, d0, z - 1.0), (u0, d0, z), 0.022, alu, n=6)
 
 
 def _rooms(c):

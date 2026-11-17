@@ -40,15 +40,17 @@ def seat_points(name):
     sc = config.load()["seats"]
     st = layout.stand(name)
     V = layout.voms(st)
-    A = layout.aisles(st)
+    A = layout.aisle_us(st)
     pts = []
     for t in layout.treads(st):
         if t["kind"] != "row":
             continue
         d = t["d0"] + 0.45
         a, b = layout.u_range(st, d)
+        if b - a < 2 * sc["edge_w"] + sc["pitch"]:
+            continue
         cuts = [(a - 1, a + sc["edge_w"]), (b - sc["edge_w"], b + 1)]
-        for u in A[1:-1]:
+        for u in A:
             cuts.append((u - sc["aisle_w"] / 2, u + sc["aisle_w"] / 2))
         for v in V:
             if v["d0"] - 1e-6 <= t["d0"] < v["d1"] - 1e-6:
@@ -72,8 +74,8 @@ def build():
     proto.hide_render = True
     proto.hide_viewport = True
     total = 0
-    for name in ("west", "east", "north", "south"):
-        if name in sc.get("no_seats", []):
+    for name in layout.names():
+        if layout.base_name(name) in sc.get("no_seats", []):
             continue
         pts = seat_points(name)
         total += len(pts)
