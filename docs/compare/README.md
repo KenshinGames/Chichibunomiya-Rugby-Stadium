@@ -13,3 +13,4 @@ CC BY-SA の写真を含む比較画像は、同じ CC BY-SA 4.0 で公開する
 | [03_back_stand.jpg](03_back_stand.jpg) | [File:秩父宮ラグビー場_(21776716854).jpg](https://commons.wikimedia.org/wiki/File:秩父宮ラグビー場_(21776716854).jpg) | Tetsuji Sakakibara | CC BY-SA 2.0 |
 | [04_from_south.jpg](04_from_south.jpg) | [File:Chichibunomiya_Rugby_Stadium2.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium2.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 |
 | [05_behind_north_posts.jpg](05_behind_north_posts.jpg) | [File:Chichibunomiya_Rugby_Stadium-6.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium-6.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 |
+| [06_north_stand.jpg](06_north_stand.jpg) | [File:Chichibunomiya_Rugby_Stadium-w3.jpg](https://commons.wikimedia.org/wiki/File:Chichibunomiya_Rugby_Stadium-w3.jpg) | 江戸村のとくぞう | CC BY-SA 4.0 |

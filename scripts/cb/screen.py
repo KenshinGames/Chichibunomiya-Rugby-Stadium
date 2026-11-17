@@ -1,4 +1,4 @@
-"""⑥大型映像装置: 北スタンド中央の後ろ。黒い枠、左に時計、右に映像。2 本の脚で立つ。"""
+"""⑥大型映像装置(得点板): 北スタンド中央の後ろ。黒い枠、左に時計、右に黒い LED の得点表示。2 本の脚で立つ。"""
 import math
 
 from . import config, materials as M
@@ -21,12 +21,27 @@ def build():
     for k in range(S["legs"]):
         y = ya - w * (k + 1) / (S["legs"] + 1)
         mb.box(x0 + 0.2, x0 + 0.2 + 2 * ls, y - ls, y + ls, 0.0, zb, M.get("grey_steel"))
-    # 映像(右側)。昼も少し光る
+    # 得点板(右側): 黒い LED の板に白い文字の行とオレンジの数字(写真 Stadium-w3、2018 年)。文字は細い四角の並びで代える
     m = 0.45
     yclock = ya - w * S["clock_frac"]
-    scr = M.emissive("screen_image", M.srgb(70, 150, 90), 1.4, 1.8, base=M.srgb(30, 70, 40))
+    led_bg = M.emissive("screen_image", M.srgb(20, 22, 24), 0.0, 0.0, base=M.srgb(14, 15, 16))
+    led_w = M.emissive("led_white", (1.0, 1.0, 0.96, 1), 1.6, 3.0, base=M.srgb(220, 220, 215))
+    led_o = M.emissive("led_orange", (1.0, 0.55, 0.15, 1), 1.6, 3.0, base=M.srgb(230, 130, 40))
     xf = x0 - 0.02
-    mb.face(((xf, yclock - 0.2, zb + m), (xf, yb + m, zb + m), (xf, yb + m, zt - m), (xf, yclock - 0.2, zt - m)), scr)
+    y_l, y_r = yclock - 0.2, yb + m
+    mb.face(((xf, y_l, zb + m), (xf, y_r, zb + m), (xf, y_r, zt - m), (xf, y_l, zt - m)), led_bg)
+    rows = 6
+    rh = (zt - zb - 2 * m) / rows
+    pat = [(0.05, 0.30), (0.36, 0.55), (0.62, 0.72), (0.78, 0.95)]      # 1 行の中の文字の固まり(左からの割合)
+    for k in range(rows):
+        z0 = zt - m - (k + 0.72) * rh
+        z1 = z0 + rh * 0.45
+        mat = led_o if k == rows - 1 else led_w
+        for j, (a, b) in enumerate(pat):
+            if (k + j) % 5 == 4:
+                continue                                                  # 空いた所も作る
+            ya_, yb_ = y_l + (y_r - y_l) * a, y_l + (y_r - y_l) * b
+            mb.face(((xf - 0.01, ya_, z0), (xf - 0.01, yb_, z0), (xf - 0.01, yb_, z1), (xf - 0.01, ya_, z1)), mat)
     # 時計(左側): 白い文字盤と黒い針
     cy = (ya + yclock) / 2
     cz = zb + (zt - zb) * 0.62
