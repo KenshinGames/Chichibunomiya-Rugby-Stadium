@@ -41,6 +41,7 @@ def build():
     if S.get("jingu"):
         _jingu(S["jingu"], c)
     _main_gate(c)
+    _jingu_towers(c)
     for st in S.get("stadiums", []):
         if S.get("jingu") and _near(st["outer"], S["jingu"]["outer"]):
             continue                      # 神宮球場は _jingu で作る
@@ -71,6 +72,29 @@ def _main_gate(c):
     p_txt = Vector((x0, y0 + G["depth"] / 2 + 0.02, h + G["beam"] / 2))
     text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.55, M.get("gate_letters"), c, p_txt,
              (0, 1, 0), jp=True, max_width=G["span"] * 0.95)
+
+
+# 神宮球場の照明塔(白い 2 本柱、大きな灯具)。比較 04 と 01 の解いたカメラからの向きの交点 [X, Y, 灯具の中心の高さ]。
+# 2 枚の写真の灯具の高さはほぼ一致(4 基目は写真の端で ±3 m)。神宮球場の中心から 112〜118 m の輪の上。残りの塔は写真にない
+JINGU_TOWERS = [(236.0, 131.0, 38.0), (143.0, 44.0, 36.5), (145.0, -18.0, 35.0), (163.0, -53.0, 26.5)]
+JINGU_CENTER = (253.0, 14.0)
+
+
+def _jingu_towers(c):
+    """神宮球場の照明塔。灯具は幅 16 m・高さ 6 m(写真 04 の見かけの幅から)、球場の中心へ向ける。夜は光る。"""
+    from mathutils import Matrix, Vector
+    from .lights import _lens
+    white, lens = M.get("white_paint"), _lens()
+    for i, (x, y, zc) in enumerate(JINGU_TOWERS):
+        a = math.atan2(JINGU_CENTER[1] - y, JINGU_CENTER[0] - x)
+        xf = Matrix.Translation((x, y, 0)) @ Matrix.Rotation(a - math.pi / 2, 4, "Z")   # 局所 +Y が球場の中心へ
+        mb = MB(xf)
+        for px in (-4.5, 4.5):
+            mb.cyl((px, 0, 0), (px, 0, zc - 3.0), 0.55, white, n=10)
+            mb.cyl((px, 0, zc - 3.5), (px * 0.6, 1.2, zc - 2.0), 0.3, white, n=8)
+        mb.box(-8.0, 8.0, 0.8, 1.6, zc - 3.0, zc + 3.0, white)            # 灯具の枠
+        mb.box(-7.6, 7.6, 1.6, 1.7, zc - 2.7, zc + 2.7, lens)             # 灯具の面(球場の側)
+        mb.build("jingu_tower_%d" % i, c)
 
 
 def _near(a, b, tol=40.0):
