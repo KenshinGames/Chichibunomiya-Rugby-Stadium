@@ -40,7 +40,62 @@ def build():
     _buildings(S, c)
     if S.get("jingu"):
         _jingu(S["jingu"], c)
+    for st in S.get("stadiums", []):
+        if S.get("jingu") and _near(st["outer"], S["jingu"]["outer"]):
+            continue                      # 神宮球場は _jingu で作る
+        _bowl(st, c)
     _trees(S, c)
+
+
+def _near(a, b, tol=40.0):
+    ca = (sum(p[0] for p in a) / len(a), sum(p[1] for p in a) / len(a))
+    cb = (sum(p[0] for p in b) / len(b), sum(p[1] for p in b) / len(b))
+    return math.dist(ca, cb) < tol
+
+
+def _bowl(st, c):
+    """屋根のある競技場(国立競技場、OSM の名前は MUFGスタジアム)の大きな形。
+    内周から外へ上がる客席、木の軒の色の外壁、客席を覆う屋根の輪(内側の縁は内周の 6 m 外)、トラックと芝。
+    高さは OSM(50.5 m)。客席の上端の高さ、屋根の傾きは推定。"""
+    outer, inner = st["outer"], st["inner"]
+    cx = sum(p[0] for p in inner) / len(inner)
+    cy = sum(p[1] for p in inner) / len(inner)
+    H = st["h"]
+    mb = MB()
+    seats, wall, roof, conc = M.get("nat_seats"), M.get("wood_louver"), M.get("roof_sheet"), M.get("concrete")
+    n = 144
+    ring = []
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        ro = _ray_poly(cx, cy, a, outer)
+        ri = _ray_poly(cx, cy, a, inner)
+        if ro is None or ri is None:
+            continue
+        ri = min(ri, ro - 20.0)
+        ring.append((a, ri, ro))
+    P = lambda a, r, z: (cx + r * math.cos(a), cy + r * math.sin(a), z)
+    z_in, z_top = 1.5, H - 12.0           # 客席は内周 1.5 m から外周の手前で H-12 m まで
+    z_eave, z_roof_in = H - 4.0, H - 8.0   # 屋根: 外周で H-4 m、内側の縁で H-8 m
+    for k in range(len(ring)):
+        a0, ri0, ro0 = ring[k]
+        a1, ri1, ro1 = ring[(k + 1) % len(ring)]
+        rs0, rs1 = ro0 - 6.0, ro1 - 6.0           # 客席の上端(外周の 6 m 内)
+        rr0, rr1 = ri0 + 6.0, ri1 + 6.0           # 屋根の内側の縁
+        mb.face((P(a0, ri0, z_in), P(a1, ri1, z_in), P(a1, rs1, z_top), P(a0, rs0, z_top)), seats)
+        mb.face((P(a0, rs0, z_top), P(a1, rs1, z_top), P(a1, ro1, z_top), P(a0, ro0, z_top)), conc)
+        mb.face((P(a0, ri0, 0.0), P(a1, ri1, 0.0), P(a1, ri1, z_in), P(a0, ri0, z_in)), conc)
+        # 外壁: 3 段の軒(外へ少しずつ張り出す)
+        for (z0, z1, dr) in ((0.0, H * 0.33, 0.0), (H * 0.33, H * 0.66, 2.0), (H * 0.66, z_eave, 4.0)):
+            mb.face((P(a1, ro1 + dr, z0), P(a0, ro0 + dr, z0), P(a0, ro0 + dr, z1), P(a1, ro1 + dr, z1)), wall)
+            mb.face((P(a0, ro0, z1), P(a1, ro1, z1), P(a1, ro1 + dr + 2.0, z1), P(a0, ro0 + dr + 2.0, z1)), wall)
+        # 屋根: 上面と下面
+        mb.face((P(a0, rr0, z_roof_in), P(a1, rr1, z_roof_in), P(a1, ro1 + 6.0, z_eave), P(a0, ro0 + 6.0, z_eave)), roof)
+        mb.face((P(a1, rr1, z_roof_in - 0.6), P(a0, rr0, z_roof_in - 0.6), P(a0, ro0 + 6.0, z_eave - 0.6), P(a1, ro1 + 6.0, z_eave - 0.6)), wall)
+        mb.face((P(a1, rr1, z_roof_in - 0.6), P(a1, rr1, z_roof_in), P(a0, rr0, z_roof_in), P(a0, rr0, z_roof_in - 0.6)), roof)
+    mb.face([P(a, r, 0.03) for (a, r, _) in ring], M.get("track_red"))
+    mb.face([P(a, r * 0.78, 0.05) for (a, r, _) in ring], M.get("turf2"))
+    mb.build("stadium_%s" % st["id"], c)
+    print("[exterior] 競技場 %s(高さ %.1f m)" % (st["name"] or st["id"], H))
 
 
 def _ground(c):

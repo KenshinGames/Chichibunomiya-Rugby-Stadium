@@ -57,6 +57,42 @@ def inside(pt, poly):
     return c
 
 
+def join_ways(geoms):
+    """relation の同じ役割の way(点列)を端でつないで、閉じた輪の一覧にする。"""
+    segs = [[xy(p) for p in g] for g in geoms if g]
+    rings = []
+    while segs:
+        cur = segs.pop(0)
+        changed = True
+        while math.dist(cur[0], cur[-1]) > 0.05 and changed:
+            changed = False
+            for i, sg in enumerate(segs):
+                if math.dist(cur[-1], sg[0]) < 0.05:
+                    cur += sg[1:]; segs.pop(i); changed = True; break
+                if math.dist(cur[-1], sg[-1]) < 0.05:
+                    cur += list(reversed(sg))[1:]; segs.pop(i); changed = True; break
+        pts = cur[:-1] if math.dist(cur[0], cur[-1]) < 0.05 else cur
+        out = []
+        for p in pts:
+            if not out or math.dist(out[-1], p) > 0.05:
+                out.append(p)
+        if len(out) >= 3:
+            if area(out) < 0:
+                out.reverse()
+            rings.append(out)
+    return rings
+
+
+def height_of(e_id, t, name, a):
+    if name in MANUAL_H:
+        return MANUAL_H[name], "manual"
+    if parse_num(t.get("height")):
+        return parse_num(t.get("height")), "height"
+    if parse_num(t.get("building:levels")):
+        return levels_height(parse_num(t.get("building:levels"))), "levels"
+    return est_height(e_id, a), "est"
+
+
 def ring(geom):
     """way の geometry を閉じた点列(最後の重複を除く、反時計回り)にする。"""
     pts = [xy(p) for p in geom]
@@ -119,7 +155,7 @@ def main():
     out = {"_comment": "OpenStreetMap から作った周りの建物・道路・運動場・木。座標は模型の X, Y(m)。"
                        "高さ h の出どころは src(height=OSM の高さ、levels=OSM の階数から、manual=手で決めた推定、est=床面積から推定)。"
                        "© OpenStreetMap contributors(ODbL)。作り直し: python3 tools/osm_surroundings.py",
-           "buildings": [], "roads": [], "areas": [], "trees": [], "tree_rows": [], "jingu": None}
+           "buildings": [], "roads": [], "areas": [], "trees": [], "tree_rows": [], "jingu": None, "stadiums": []}
     skipped = 0
     for e in load("buildings"):
         if e["type"] != "way" or "geometry" not in e:
@@ -147,6 +183,31 @@ def main():
             h = min(h, 6.0)
         out["buildings"].append({"id": e["id"], "name": name, "kind": t.get("building", "yes"), "h": round(h, 1),
                                  "src": src, "poly": poly})
+    # relation の建物(multipolygon)。内周のある競技場は stadiums へ、ほかは外周を建物として足す
+    for e in load("buildings"):
+        if e["type"] != "relation":
+            continue
+        t = e.get("tags", {})
+        if t.get("type") != "multipolygon":
+            continue                       # type=building(outline と part)は way の側に入っている
+        name = t.get("name", "")
+        mem = e.get("members", [])
+        outers = join_ways([m.get("geometry") for m in mem if m.get("role") == "outer"])
+        inners = join_ways([m.get("geometry") for m in mem if m.get("role") == "inner"])
+        if not outers:
+            continue
+        c = centroid(outers[0])
+        if in_zone(c):
+            skipped += 1
+            continue
+        h, src = height_of(e["id"], t, name, area(outers[0]))
+        if t.get("building") == "stadium" and inners:
+            out["stadiums"].append({"id": e["id"], "name": name, "h": round(h, 1), "src": src,
+                                    "outer": outers[0], "inner": inners[0]})
+            continue
+        for k, o in enumerate(outers):
+            out["buildings"].append({"id": e["id"] * 10 + k, "name": name, "kind": t.get("building", "yes"),
+                                     "h": round(h, 1), "src": src, "poly": o})
     for e in load("highways"):
         t = e.get("tags", {})
         k = t.get("highway")
@@ -204,6 +265,12 @@ def main():
     print("建物 %d 棟(高さの出どころ %s、スタジアムの中で除いた %d)、道 %d 本、面 %d、木 %d 本、並木 %d 列、神宮球場 %s" % (
         len(out["buildings"]), srcs, skipped, len(out["roads"]), len(out["areas"]), len(out["trees"]),
         len(out["tree_rows"]), "あり" if out["jingu"] else "なし"))
+    for st in out["stadiums"]:
+        co, ci = centroid(st["outer"]), centroid(st["inner"])
+        ro = (abs(area(st["outer"])) / math.pi) ** 0.5
+        ri = (abs(area(st["inner"])) / math.pi) ** 0.5
+        print("  競技場 %s %s: 高さ %.1f m、中心 X=%.0f Y=%.0f、外周の半径(面積から)%.0f m、内周 %.0f m(中心のずれ %.1f m)" % (
+            st["id"], st["name"] or "(名前なし)", st["h"], co[0], co[1], ro, ri, math.dist(co, ci)))
     tall = sorted(out["buildings"], key=lambda b: -b["h"])[:8]
     for b in tall:
         c = centroid(b["poly"])
