@@ -28,10 +28,6 @@ def _turf(cfg, c):
     mb = MB()
     mb.rect(w["south_x"] - 6, w["north_x"] + 3, w["east_y"] - 3, w["west_y"] + 3, -0.02, M.get("apron"))
     mb.build("apron", c)
-    # 仮の地面(周りの街は段階 7 で作る)。比べるときに背景が真っ暗にならないように
-    mb = MB()
-    mb.rect(-400.0, 400.0, -400.0, 400.0, -0.05, M.get("paving_grey"))
-    mb.build("ground_tmp", c)
 
 
 def _lines(cfg, c):

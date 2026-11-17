@@ -4,45 +4,39 @@
 
 ## 今の段階
 
-**段階 3(大きな形)まで済み**(2026-11-17)。次は段階 4(屋根・骨組み)。
+**段階 4〜7 の 1 回目まで済み**(2026-11-17)。座席の色、屋根の骨組み、出入口と手すり、映像装置、照明塔、周りの街(OSM)まで。
+次は看板と外壁・正面入場口、そのあと夜と質感(段階 8)。
 
 ## 終わったこと
 
-- 段階 0: Blender 5.3.0、ffmpeg、空き容量 14 GB を確認。
-- 段階 1: 資料調べ。[docs/reference.md](docs/reference.md)(公式・実測・推定の印つき)、[docs/plan.md](docs/plan.md)。
-  空中写真の目盛り(`refs/map/grid10m.png`、+X = 方位 338.2 度)、OSM の芝の外形、Commons の写真 103 枚の作者・ライセンス・GPS(`refs/photos/meta.json`)、JSC の座席図。
-- 段階 2: 芝(X ±70、Y ±40)、ライン(100 × 70、インゴール 16)、ゴールポスト(12 m)、フラッグ、芝の外の帯、仮の地面。
-- 段階 3: 四方のスタンドの段の躯体(断面は JSON)、出入口の箱、メインの上の部屋の列、メインと南の屋根の板と仮の柱。
-  - 真上の正射影を空中写真に重ねた: `out/stage3/map_overlay.jpg`。外形・出入口・屋根の平面が合う。
-  - 写真 5 枚と比べた: `docs/compare/`(左が写真、右が模型)。カメラはゴールポストの見かけの大きさから計算して置いた。
-  - 比べた結果、高さを直した: ポスト 16→12 m、バックスタンドの最上部 16.4→11.2 m、メインの最上段 15.6→12.2 m、メインの屋根の上端 23.2 m、南の屋根 14.2 m。
-- スキルへの意見: [docs/skill-feedback.md](docs/skill-feedback.md)。
+- 段階 0〜3: 資料([docs/reference.md](docs/reference.md))、グラウンド、四方のスタンドの断面。高さは写真 5 枚で確かめた(ポスト 12 m、バック最上部 11.2 m、メイン最上段 12.2 m)。
+- 段階 4: `roof.py`。メインは平らな板を太い柱 2 列と前へ細くなる梁で支える形(写真 038)。南は前の柱の列。
+- 段階 5: `seats.py`(1 脚ずつ、西と東の中央が黄色、ほかは青、北は座席なし)、`details.py`(縦通路、出入口の箱、手すり)、上の部屋の窓と貴賓席。
+- 段階 6: `screen.py`(北の中央の後ろ、時計と映像)、`lights.py`(照明塔 4 基、東の 2 基は 25 m、西は 33 m)。
+- 段階 7: `exterior.py`。OSM の建物 1,534 棟、道 575 本、運動場・公園、木 1,928 本、神宮球場の大きな形。
+  元データは `refs/osm/`、模型の座標に直したものが `config/surroundings.json`(`tools/osm_surroundings.py`)。
+- 比較: `docs/compare/` の 5 枚を描き直した。03(バックスタンド正面)は照明塔の位置と高さまで重なる。
+- スキルへの意見: [docs/skill-feedback.md](docs/skill-feedback.md)(段階 4〜7 の分を追記)。
 
-## わかっている問題(段階 4 以降で直す)
+## わかっている問題
 
-一覧は [docs/remaining.md](docs/remaining.md)。要点:
+一覧は [docs/remaining.md](docs/remaining.md)。要点: 看板と外壁がない、周りの建物の高さの 9 割は推定、南西の照明塔は推定、比較 01・02 のカメラは 2 度ほどずれる。
 
+## 次にやること
 
-- メインの屋根は厚さ 4.2 m の箱。実物は片持ちの屋根で、前の縁が厚く、後ろに柱の列、上の部屋の前にも柱がある。
-- 南の屋根の柱は仮(後ろに並べただけ)。実物は前の縁の下に 9 本ほどの柱が並ぶ。
-- 屋根の平面は空中写真の倒れを補正していない(±3 m)。
-- 北スタンドの高さ(8.5 m)と、西・北・南の段数は推定。写真で数えたのは東だけ。
-- 比較 01(バックスタンド南から)と 02(北東の隅から)は、カメラが写真と完全には重ならない(2 度ほど)。2012〜2013 年の写真で、ポストの高さが今と違うかもしれない。03・04・05 はよく重なる。
-- 座席、通路、手すり、映像装置、照明塔、外壁、周りの建物はまだない。
-
-## 次にやること(段階 4)
-
-1. `scripts/cb/roof.py` を作り、`stands.py` の `_roofs` を移す。メインは前の縁(厚さ約 4 m)+下の面+柱の列。写真 057(`refs/photos/big/full057.jpg` の右半分)を見ながら。
-2. 南の屋根の前の柱の列(写真 040、057 の左)。
-3. 比較 01〜05 を描き直して、屋根の形を見比べる。
+1. 看板(前の壁と芝の外、企業名は架空)とゲート番号の札。花園の `signage.py` を見本に。
+2. メインの後ろの外壁と正面入場口(写真 Chichibunomiya Rugby Stadium 2019d、Stadium1、Asian Rugby-1)。
+3. 夜(照明塔の光、窓の明かり)と質感。そのあと比較を増やして見比べ(段階 9)。
 
 ## 流し方
 
 ```
-./run.sh build
-DEVICE=CPU SAMPLES=24 RES=1280x720 OUT=out/stage3 ./run.sh check aerial,aerial_ne,side_west day
+./run.sh build                                          # 約 1 秒
+DEVICE=CPU SAMPLES=24 RES=1280x720 OUT=out/check ./run.sh check aerial_wide,from_seat,main_front day
 DEVICE=CPU blender -b build/chichibu.blend -P scripts/compare.py -- --samples 24 --width 1280 --blend
+python3 tools/osm_surroundings.py                       # OSM を取り直したとき
 ```
 
-- GPU が空いていれば `DEVICE=CPU` を外す(速い)。ほかの Blender の描画(花園など)が動いていると GPU のメモリ不足で止まるので、先に `ps aux | grep -i blender` で確かめる。
+- **GPU は 2026-11-18 の朝 3 時半〜4 時ごろまで花園の描画が使っている**(本人から)。それまでは `DEVICE=CPU`(1 枚 30〜60 秒)。
+  GPU が空いたら `DEVICE=CPU` を外す。4K の仕上げ(`./run.sh stills`)や一周の動画はそのあとに回す。先に `ps aux | grep -i blender` で確かめる。
 - `refs/` は git に入っていない。作り直し方は [docs/plan.md](docs/plan.md) の最後。

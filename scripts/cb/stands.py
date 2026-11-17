@@ -1,8 +1,8 @@
-"""③スタンドの大きな形: 四方の段の躯体、出入口の箱、メインスタンド後ろの部屋の列、屋根の板と仮の柱。
+"""③スタンドの大きな形: 四方の段の躯体(出入口の穴あき)、メインスタンド後段の上の部屋、南スタンドの後ろの壁。
 
-細部(座席、手すり、通路の色、屋根の骨組み)は段階 4・5 で足す。
+出入口の箱・縦通路・手すりは details.py、座席は seats.py、屋根は roof.py。
 """
-from . import config, layout, materials as M
+from . import layout, materials as M
 from .util import MB, coll
 
 STANDS = ("west", "east", "north", "south")
@@ -12,9 +12,8 @@ def build():
     c = coll("stands")
     for name in STANDS:
         _mass(name, c)
-        _voms(name, c)
-    _back_blocks(c)
-    _roofs(c)
+    _rooms(c)
+    _south_back(c)
 
 
 def _spans(st, d0, d1):
@@ -23,25 +22,34 @@ def _spans(st, d0, d1):
     return list(zip(ds, ds[1:]))
 
 
+def _pieces(st, d, cuts):
+    a, b = layout.u_range(st, d)
+    return layout.subtract(a, b, cuts)
+
+
 def _mass(name, c):
-    """段(踏み面と蹴上げ)、両脇の壁、後ろの壁。床下は地面まで埋まった形として側壁で閉じる。"""
+    """段(踏み面と蹴上げ)、両脇の壁、後ろの壁。出入口の範囲は踏み面と蹴上げを抜く。"""
     st = layout.stand(name)
     mb = MB(layout.xf(name))
     conc = M.get("concrete")
     wall = M.get("concrete_light")
     T = layout.treads(st)
+    V = layout.voms(st)
     zprev = 0.0
     for i, t in enumerate(T):
         d0, d1, z = t["d0"], t["d1"], t["z"]
-        a0, b0 = layout.u_range(st, d0)
+        dm = (d0 + d1) / 2
+        cuts = [(v["u0"], v["u1"]) for v in V if v["d0"] - 1e-6 <= dm < v["d1"]]
         # 蹴上げ(最初の段は前の壁)
         if z > zprev:
-            mb.face(((a0, d0, zprev), (b0, d0, zprev), (b0, d0, z), (a0, d0, z)), wall if i == 0 else conc)
+            for (p, q) in _pieces(st, d0, cuts):
+                mb.face(((p, d0, zprev), (q, d0, zprev), (q, d0, z), (p, d0, z)), wall if i == 0 else conc)
         for (da, db) in _spans(st, d0, d1):
+            A, B = _pieces(st, da, cuts), _pieces(st, db, cuts)
+            for (pa, qa), (pb, qb) in zip(A, B):
+                mb.face(((pa, da, z), (qa, da, z), (qb, db, z), (pb, db, z)), conc)
             aa, ba = layout.u_range(st, da)
             ab, bb = layout.u_range(st, db)
-            mb.face(((aa, da, z), (ba, da, z), (bb, db, z), (ab, db, z)), conc)
-            # 両脇の壁(地面から踏み面まで)
             mb.face(((ba, da, 0), (bb, db, 0), (bb, db, z), (ba, da, z)), wall)
             mb.face(((ab, db, 0), (aa, da, 0), (aa, da, z), (ab, db, z)), wall)
         zprev = z
@@ -54,74 +62,50 @@ def _mass(name, c):
     mb.build("stand_" + name, c)
 
 
-def _voms(name, c):
-    """出入口(横通路の後ろに食い込む箱)。前の面は暗い開口。"""
-    st = layout.stand(name)
-    V = layout.voms(st)
-    if not V:
-        return
-    mb = MB(layout.xf(name))
+def _rooms(c):
+    """メインスタンド後段の上の部屋の列(記者席・貴賓席)。前は腰壁と窓の帯、中央は前へ張り出す貴賓席。"""
+    st = layout.stand("west")
+    bb = st["back_block"]
+    mb = MB(layout.xf("west"))
     wall = M.get("concrete_light")
-    dark = M.get("black")
-    for v in V:
-        u0, u1, d0, d1 = v["u0"], v["u1"], v["d0"], v["d1"]
-        zf, zt = v["zf"], v["ztop"]
-        mb.box(u0 - 0.25, u1 + 0.25, d0, d1, zf, zt, wall, bottom=False)
-        # 開口(前の面の少し手前に暗い板)
-        mb.face(((u0, d0 - 0.02, zf), (u1, d0 - 0.02, zf), (u1, d0 - 0.02, zt - 0.6), (u0, d0 - 0.02, zt - 0.6)), dark)
-    mb.build("voms_" + name, c)
+    dark = M.get("concrete_dark")
+    glass = M.emissive("room_glass", (1.0, 0.86, 0.66, 1), 0.0, 1.6, base=M.srgb(40, 52, 60))
+    d0 = layout.depth(st)
+    z0 = layout.top_z(st)
+    u0, u1, d1, rh = bb["u0"], bb["u1"], bb["d1"], bb["room_h"]
+    df = d0 + 0.6                       # 部屋の前の面
+    # 躯体(地面から部屋の床まで)と部屋の箱
+    mb.box(u0, u1, d0, d1, 0.0, z0, wall)
+    mb.box(u0, u1, df, d1, z0, z0 + rh, dark, bottom=False)
+    # 前の面: 腰壁、窓、上の帯
+    zs, zw = z0 + 1.3, z0 + rh - 1.0
+    mb.box(u0, u1, df - 0.25, df, z0, zs, wall)
+    mb.face(((u0, df - 0.05, zs), (u1, df - 0.05, zs), (u1, df - 0.05, zw), (u0, df - 0.05, zw)), glass)
+    mb.box(u0, u1, df - 0.25, df, zw, z0 + rh, wall)
+    # 窓の縦の桟(2.4 m ごと)
+    n = int((u1 - u0) / 2.4)
+    for i in range(n + 1):
+        u = u0 + (u1 - u0) * i / n
+        mb.box(u - 0.06, u + 0.06, df - 0.12, df - 0.04, zs, zw, M.get("aluminium"))
+    # 中央の貴賓席: 1 段低く、前へ張り出す。前に手すり
+    vu0, vu1, dv = -11.0, 11.0, df - 1.8
+    mb.box(vu0, vu1, dv, df, z0 - 0.6, z0 + 0.4, wall)
+    mb.face(((vu0, dv - 0.02, z0 + 0.4), (vu1, dv - 0.02, z0 + 0.4), (vu1, dv - 0.02, z0 + 2.9), (vu0, dv - 0.02, z0 + 2.9)), glass)
+    mb.box(vu0, vu1, dv, df, z0 + 2.9, z0 + 3.4, wall)
+    for u in (vu0, vu1):
+        mb.box(u - 0.15, u + 0.15, dv, df, z0 + 0.4, z0 + 2.9, wall)
+    mb.build("main_rooms", c)
 
 
-def _back_blocks(c):
-    """メインスタンド後段の上の部屋の列(記者席・貴賓席)と、南スタンドの後ろの通路と外壁。"""
-    for name in ("west", "south"):
-        st = layout.stand(name)
-        bb = st.get("back_block")
-        if not bb:
-            continue
-        mb = MB(layout.xf(name))
-        wall = M.get("concrete_light")
-        d0 = layout.depth(st)
-        z0 = layout.top_z(st)
-        u0, u1 = bb["u0"], bb["u1"]
-        rh = bb.get("room_h", 0.0)
-        # 躯体(地面から部屋の床まで)
-        mb.box(u0, u1, d0, bb["d1"], 0.0, z0 + (0.0 if rh else st.get("back_parapet", 1.1)), wall)
-        if rh:
-            # 部屋: 前面はガラス、上は屋根の下まで
-            mb.box(u0, u1, d0 + 0.6, bb["d1"], z0, z0 + rh, wall, bottom=False)
-            mb.face(((u0, d0 + 0.58, z0 + 1.0), (u1, d0 + 0.58, z0 + 1.0), (u1, d0 + 0.58, z0 + rh - 0.5),
-                     (u0, d0 + 0.58, z0 + rh - 0.5)), M.get("glass_dark"))
-        mb.build("back_block_" + name, c)
-
-
-def _roofs(c):
-    """屋根は板と仮の柱だけ(段階 4 で骨組みを作り直す)。"""
-    roofs = config.load()["roof"]
-    for name, r in roofs.items():
-        if name.startswith("_"):
-            continue
-        st = layout.stand(name)
-        mb = MB(layout.xf(name))
-        z0, z1 = r["z_bottom"], r["z_bottom"] + r["thickness"]
-        mb.box(r["u0"], r["u1"], r["d0"], r["d1"], z0, z1, M.get("roof_under"))
-        # 仮の柱: 後ろの端の内側に等間隔。床はその d の踏み面の高さ
-        n = max(2, int(round((r["u1"] - r["u0"]) / 10.0)))
-        dcol = r["d1"] - 0.6
-        zf = _floor_z(st, dcol)
-        for k in range(n + 1):
-            u = r["u0"] + 0.5 + (r["u1"] - r["u0"] - 1.0) * k / n
-            mb.box(u - 0.35, u + 0.35, dcol - 0.35, dcol + 0.35, zf, z0, M.get("concrete"))
-        mb.build("roof_" + name, c)
-
-
-def _floor_z(st, d):
-    """d の位置の床の高さ。段の外なら一番上の段の高さ(部屋があればその床)。"""
-    for t in layout.treads(st):
-        if t["d0"] <= d < t["d1"]:
-            return t["z"]
+def _south_back(c):
+    """南スタンドの後ろの通路と外壁(屋根の後ろの端まで)。"""
+    st = layout.stand("south")
     bb = st.get("back_block")
-    z = layout.top_z(st)
-    if bb and bb.get("room_h"):
-        return z + bb["room_h"]
-    return z
+    if not bb:
+        return
+    mb = MB(layout.xf("south"))
+    d0 = layout.depth(st)
+    z0 = layout.top_z(st)
+    mb.box(bb["u0"], bb["u1"], d0, bb["d1"], 0.0, z0, M.get("concrete_light"))
+    mb.box(bb["u0"], bb["u1"], bb["d1"] - 0.25, bb["d1"], z0, z0 + st.get("back_parapet", 1.1), M.get("concrete_light"))
+    mb.build("south_back", c)

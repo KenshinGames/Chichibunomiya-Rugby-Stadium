@@ -434,6 +434,16 @@ _builders = {
     "house_c": _house_wall("house_c", srgb(182, 176, 164)),
     "apart_a": _house_wall("apart_a", srgb(198, 194, 184)),
     "apart_b": _house_wall("apart_b", srgb(156, 150, 140)),
+    # 秩父宮のまわり(北青山)の事務所ビル。窓の格子は家と同じ仕組み
+    "office_a": _house_wall("office_a", srgb(188, 190, 192)),
+    "office_b": _house_wall("office_b", srgb(120, 132, 146)),
+    "office_c": _house_wall("office_c", srgb(200, 190, 172)),
+    "office_d": _house_wall("office_d", srgb(92, 84, 80)),
+    "roof_flat_a": _noisy("roof_flat_a", srgb(150, 150, 148), 0.9, scale=0.3, amount=0.15),
+    "roof_flat_b": _noisy("roof_flat_b", srgb(118, 122, 124), 0.9, scale=0.3, amount=0.15),
+    "court": _noisy("court", srgb(52, 118, 92), 0.85, scale=0.5, amount=0.08),
+    "paving_light": _noisy("paving_light", srgb(178, 174, 166), 0.9, scale=0.6, amount=0.10),
+    "brick_wall": _noisy("brick_wall", srgb(150, 86, 66), 0.9, scale=0.8, amount=0.15),
     "ground_far": _noisy("ground_far", srgb(104, 110, 102), 0.95, scale=0.004, amount=0.2),
     "turf2": _noisy("turf2", srgb(40, 96, 50), 0.9, scale=0.2, amount=0.12),
     "hockey": _noisy("hockey", srgb(96, 160, 150), 0.85, scale=0.2, amount=0.06),
@@ -465,7 +475,14 @@ define("pad_white", color=srgb(240, 240, 240), rough=0.55)
 define("pad_red", color=srgb(196, 30, 36), rough=0.55)
 define("flag_red", color=srgb(214, 36, 40), rough=0.7)
 define("seat_red", color=srgb(200, 22, 16), rough=0.6, spec=0.3)
-define("seat_blue", color=srgb(20, 48, 160), rough=0.6, spec=0.3)
+# 秩父宮: 水色寄りの青と、からし色の黄(写真の日なたの青は sRGB で約 (119,175,219))
+define("seat_blue", color=srgb(40, 122, 196), rough=0.55, spec=0.3)
+define("seat_yellow", color=srgb(214, 178, 40), rough=0.55, spec=0.3)
+define("vom_blue", color=srgb(176, 198, 214), rough=0.7)
+define("vom_yellow", color=srgb(222, 204, 128), rough=0.7)
+define("vom_red", color=srgb(196, 44, 40), rough=0.6)
+define("jingu_seats", color=srgb(46, 92, 168), rough=0.6)
+define("water", color=srgb(48, 88, 112), rough=0.08, spec=0.6)
 define("seat_grey", color=srgb(150, 152, 156), rough=0.42)
 define("glass", color=srgb(150, 175, 185), rough=0.06, metal=0.0, transmission=0.0, alpha=1.0, spec=1.0, coat=1.0)
 define("glass_dark", color=srgb(34, 44, 52), rough=0.05, spec=1.0, coat=1.0)

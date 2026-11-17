@@ -13,4 +13,5 @@
 ```
 
 寸法は [config/dimensions.json](config/dimensions.json) にまとめてあり、形はすべてそこから計算する。
+周りの建物・道・木(config/surroundings.json)は © OpenStreetMap contributors(ODbL)のデータから作った。
 参考写真は Wikimedia Commons のもの。比較画像(docs/compare/)は元の写真のライセンスに従う(CC BY-SA の写真を含むものは CC BY-SA 4.0)。
