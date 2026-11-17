@@ -441,7 +441,7 @@ _builders = {
     "office_d": _house_wall("office_d", srgb(92, 84, 80)),
     "roof_flat_a": _noisy("roof_flat_a", srgb(150, 150, 148), 0.9, scale=0.3, amount=0.15),
     "roof_flat_b": _noisy("roof_flat_b", srgb(118, 122, 124), 0.9, scale=0.3, amount=0.15),
-    "court": _noisy("court", srgb(52, 118, 92), 0.85, scale=0.5, amount=0.08),
+    "court": _noisy("court", srgb(172, 154, 124), 0.85, scale=0.5, amount=0.08),   # 砂入り人工芝(空中写真の神宮外苑のテニスコートは明るいベージュ)
     "paving_light": _noisy("paving_light", srgb(178, 174, 166), 0.9, scale=0.6, amount=0.10),
     "brick_wall": _noisy("brick_wall", srgb(150, 86, 66), 0.9, scale=0.8, amount=0.15),
     "ground_far": _noisy("ground_far", srgb(104, 110, 102), 0.95, scale=0.004, amount=0.2),
