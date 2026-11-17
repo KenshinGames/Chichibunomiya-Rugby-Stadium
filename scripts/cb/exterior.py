@@ -172,6 +172,9 @@ def _buildings(S, c):
         r = _h01(b["id"])
         if b["name"] == "伊藤忠商事東京本社ビル":
             wall = M.get("office_d")
+        elif h >= 60:
+            # 高さ 60 m 以上の塔はガラスの外壁(青山の高層は 1990 年代以降のガラス張りが多い。写真 05・02)
+            wall = M.get(("office_glass", "office_glass2")[int(r * 2) % 2])
         elif h > 40:
             wall = M.get(("office_a", "office_b", "office_c")[int(r * 3) % 3])
         else:

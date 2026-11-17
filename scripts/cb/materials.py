@@ -91,10 +91,11 @@ def _rainbow(name, base, night=1.1):
     return build
 
 
-def _house_wall(name, color):
-    """家やマンションの壁。窓の格子を描き、夜は 3 割ほどの窓に明かりがともる。"""
+def _house_wall(name, color, rough=0.9, metal=0.0, spec=0.5):
+    """家やマンションの壁。窓の格子を描き、夜は 3 割ほどの窓に明かりがともる。
+    rough を小さくするとガラスの外壁(空を映す)。"""
     def build():
-        m = _principled(name, color, rough=0.9)
+        m = _principled(name, color, rough=rough, metal=metal, spec=spec)
         nt = m.node_tree
         N, L = nt.nodes, nt.links
         b = N.get("Principled BSDF")
@@ -439,6 +440,9 @@ _builders = {
     "office_b": _house_wall("office_b", srgb(120, 132, 146)),
     "office_c": _house_wall("office_c", srgb(200, 190, 172)),
     "office_d": _house_wall("office_d", srgb(92, 84, 80)),
+    # 高層のガラスの外壁(写真 05 の青山OM-SQUARE、写真 02 の左の塔): 暗い青緑のガラス、空を映す
+    "office_glass": _house_wall("office_glass", srgb(58, 78, 88), rough=0.12, metal=0.35, spec=0.8),
+    "office_glass2": _house_wall("office_glass2", srgb(70, 74, 82), rough=0.18, metal=0.25, spec=0.7),
     "roof_flat_a": _noisy("roof_flat_a", srgb(150, 150, 148), 0.9, scale=0.3, amount=0.15),
     "roof_flat_b": _noisy("roof_flat_b", srgb(118, 122, 124), 0.9, scale=0.3, amount=0.15),
     "court": _noisy("court", srgb(172, 154, 124), 0.85, scale=0.5, amount=0.08),   # 砂入り人工芝(空中写真の神宮外苑のテニスコートは明るいベージュ)
