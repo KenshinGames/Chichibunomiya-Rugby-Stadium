@@ -59,6 +59,8 @@ def _vom(mb, name, T, v):
     床は奥へ下がり、奥の壁に暗い口と色の枠、口の上の手すりにゲート番号の札。写真 Rugby2・Stadium-4・03。"""
     conc, wall = M.get("concrete"), M.get("concrete_light")
     col = _vom_mat(name, (v["u0"] + v["u1"]) / 2)
+    if layout.base_name(name) == "north":
+        wall = col                     # 北スタンドの出入口は両脇と奥の壁まで赤く塗ってある(写真 Stadium-w3)
     u0, u1, d0, d1, zf = v["u0"], v["u1"], v["d0"], v["d1"], v["zf"]
     zb = zf - VOM_DROP
     rows = [t for t in T if d0 - 1e-6 <= t["d0"] < d1 - 1e-6]
