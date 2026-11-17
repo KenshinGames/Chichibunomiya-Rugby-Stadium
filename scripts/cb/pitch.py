@@ -141,11 +141,12 @@ def _benches(cfg, c):
     y_back = b["y"] + b["depth"] / 2
     h = b["height"]
     frame = M.get("white_steel")
-    clear = M.get("poly_clear")
+    clear = M.get(b.get("roof", "poly_clear"))
     mb = MB()
     n = 8
-    for xc in b["x_centers"]:
-        x0, x1 = xc - b["length"] / 2, xc + b["length"] / 2
+    lens = b.get("lengths") or [b["length"]] * len(b["x_centers"])
+    for xc, L in zip(b["x_centers"], lens):
+        x0, x1 = xc - L / 2, xc + L / 2
         # 後ろの壁から前へ丸くかぶさる屋根(4 分の 1 の弧)
         prof = []
         back_h = h * 0.45
@@ -162,7 +163,7 @@ def _benches(cfg, c):
             pts = [(x, p[0], p[1]) for p in prof] + [(x, prof[-1][0], prof[-1][1] - 0.05), (x, y_back - 0.3, 0.0)]
             mb.face(pts, clear)
         # 骨
-        nr = int(round(b["length"] / 2.0))
+        nr = max(1, int(round(L / 2.0)))
         for k in range(nr + 1):
             x = x0 + (x1 - x0) * k / nr
             for i in range(len(prof) - 1):
