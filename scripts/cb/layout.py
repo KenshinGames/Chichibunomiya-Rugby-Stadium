@@ -76,7 +76,8 @@ def _corner(name):
     st = {key: P[key] for key in ("side", "wall", "segments", "front_wall_h", "back_parapet") if key in P}
     st.update(u0=[[0.0, -1e4]], u1=[[0.0, 1e4]], _poly=local, _base=base, _k=k,
               aisle_us=[sg * u for u in C.get("aisle_us", [])],
-              voms=[{"seg": C["vom_seg"], "us": [sg * u for u in C.get("vom_us", [])]}] if C.get("vom_us") else [])
+              voms=[{"seg": C["vom_seg"], "us": [sg * u for u in C.get("vom_us", [])]}] if C.get("vom_us") else [],
+              gate_nos=C.get("gate_nos", [])[k:k + 1])
     return st
 
 
@@ -211,12 +212,14 @@ def voms(st):
     sc = config.load()["seats"]
     T = treads(st)
     out = []
+    nos = list(st.get("gate_nos", []))
     for v in st.get("voms", []):
         flat = [t for t in T if t["seg"] == v["seg"]][0]
         rows = [t for t in T if t["d0"] >= flat["d1"] - 1e-6][:sc["vom_rows"]]
         for u in v["us"]:
             out.append(dict(u0=u - sc["vom_w"] / 2, u1=u + sc["vom_w"] / 2, d0=flat["d1"], d1=rows[-1]["d1"],
-                            zf=flat["z"], ztop=rows[-1]["z"] + rows[-1]["riser"] + 1.1))
+                            zf=flat["z"], ztop=rows[-1]["z"] + rows[-1]["riser"] + 1.1,
+                            no=nos.pop(0) if nos else None))
     return out
 
 

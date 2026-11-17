@@ -42,6 +42,18 @@ def _vom_mat(name, u):
     return M.get("vom_yellow") if seats.seat_color(name, u) == "yellow" else M.get("vom_blue")
 
 
+def _gate_no(c, xf, v, zn, name):
+    """出入口の白い札にゲート番号(JSC の座席案内の番号)。"""
+    from mathutils import Vector
+    from .util import text_obj
+    if v.get("no") is None:
+        return
+    um = (v["u0"] + v["u1"]) / 2
+    p = xf @ Vector((um, v["d1"] - 0.185, zn + 0.5))
+    nrm = (xf.to_3x3() @ Vector((0, -1, 0))).normalized()
+    text_obj("gate_no_%s_%d" % (name, v["no"]), str(v["no"]), 0.26, M.get("text_dark"), c, p, nrm)
+
+
 def _vom(mb, name, T, v):
     """出入口: 横通路の後ろの段を切った上の開いた穴。両脇は段ごとの低いコンクリートの壁(段+0.9 m)と手すり、
     床は奥へ下がり、奥の壁に暗い口と色の枠、口の上の手すりにゲート番号の札。写真 Rugby2・Stadium-4・03。"""
@@ -112,6 +124,8 @@ def build():
         mb = MB(xf)
         for v in V:
             _vom(mb, name, T, v)
+            nxt = [t for t in T if t["d0"] >= v["d1"] - 1e-6]
+            _gate_no(c, xf, v, nxt[0]["z"] if nxt else v["ztop"], name)
         if not mb.empty():
             mb.build("voms_" + name, c)
 
