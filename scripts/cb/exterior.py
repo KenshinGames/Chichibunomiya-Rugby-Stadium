@@ -232,6 +232,35 @@ def _roof_box(mb, poly, cx, cy, sx, sy, z0, z1, mat):
     return False
 
 
+# かまぼこ形の白い屋根の建物(写真 03 のバックスタンドの右奥。外苑の室内球技場とバッティングドーム)
+VAULTS = ("室内球技場", "バッティングドーム")
+
+
+def _vault(mb, poly, h, wall, roof):
+    """外形をいちばん長い辺の向きの長方形とみなし、壁を h の 45% まで立ててその上をかまぼこ形の屋根で覆う。"""
+    n = len(poly)
+    i = max(range(n), key=lambda i: math.dist(poly[i], poly[(i + 1) % n]))
+    p, q = poly[i], poly[(i + 1) % n]
+    L = math.dist(p, q)
+    ux, uy = (q[0] - p[0]) / L, (q[1] - p[1]) / L
+    vx, vy = -uy, ux
+    us = [(a[0] - p[0]) * ux + (a[1] - p[1]) * uy for a in poly]
+    vs = [(a[0] - p[0]) * vx + (a[1] - p[1]) * vy for a in poly]
+    u0, u1, v0, v1 = min(us), max(us), min(vs), max(vs)
+    P = lambda u, v, z: (p[0] + ux * u + vx * v, p[1] + uy * u + vy * v, z)
+    zw = h * 0.45
+    for (a, b) in (((u0, v0), (u1, v0)), ((u1, v0), (u1, v1)), ((u1, v1), (u0, v1)), ((u0, v1), (u0, v0))):
+        mb.face((P(a[0], a[1], 0), P(b[0], b[1], 0), P(b[0], b[1], zw), P(a[0], a[1], zw)), wall)
+    k = 16
+    W = v1 - v0
+    arc = [(v0 + W * j / k, zw + (h - zw) * math.sin(math.pi * j / k)) for j in range(k + 1)]
+    for j in range(k):
+        (va, za), (vb, zb) = arc[j], arc[j + 1]
+        mb.face((P(u0, va, za), P(u0, vb, zb), P(u1, vb, zb), P(u1, va, za)), roof)
+    for uu in (u0, u1):
+        mb.face([P(uu, v, z) for v, z in arc], wall)
+
+
 def _buildings(S, c):
     """建物: 外形を高さまで立ち上げる。屋上の縁(パラペット)を 0.9 m 立ち上げ、
     大きな屋根には設備の箱や塔屋を載せる(形は推定。遠目の輪郭を単調にしないため)。"""
@@ -254,6 +283,9 @@ def _buildings(S, c):
                           "office_f")[int(r * 8) % 8])
         else:
             wall = M.get(WALLS[int(r * len(WALLS)) % len(WALLS)])
+        if b["name"] in VAULTS:
+            _vault(mb, poly, h, M.get("factory_wall"), M.get("roof_membrane"))
+            continue
         area, (cx, cy) = _poly_area_c(poly)
         par = 0.9 if h > 7 and area > 60 else 0.0
         n = len(poly)

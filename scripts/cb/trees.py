@@ -79,7 +79,7 @@ def _bark():
 
 # 樹冠の形: (下端, 上端, 最大の半径, 最大になる高さ, 塊の数, 塊の半径) すべて高さ 1 に対する比
 SHAPES = {
-    "ichou": (0.22, 1.00, 0.27, 0.40, 190, 0.050),
+    "ichou": (0.18, 1.00, 0.21, 0.30, 170, 0.046),
     "keyaki": (0.38, 1.00, 0.44, 0.75, 240, 0.055),
     "round": (0.36, 1.00, 0.36, 0.62, 180, 0.055),
     "conifer": (0.12, 1.00, 0.21, 0.15, 160, 0.042),
@@ -95,6 +95,8 @@ def _radius_at(shape, t):
         u = (t - z0) / max(1e-6, zm - z0)
         return rmax * math.sqrt(max(0.0, 1 - (1 - u) ** 2))
     u = (t - zm) / max(1e-6, z1 - zm)
+    if shape is SHAPES["ichou"]:
+        return rmax * (1 - u) ** 1.1          # 先のとがった円錐(外苑のイチョウ。写真 03 の後ろの細い木)
     return rmax * max(0.0, 1 - u ** 1.6) ** 0.6
 
 
@@ -176,8 +178,8 @@ def _proto(kind, seed, leaf, bark):
 # 置き場所の種類 → 原型の割合
 MIX = {
     "row": {"ichou": 0.75, "keyaki": 0.25},
-    "wood": {"keyaki": 0.45, "ichou": 0.25, "round": 0.15, "conifer": 0.15},
-    "aerial": {"keyaki": 0.45, "ichou": 0.3, "round": 0.1, "conifer": 0.15},
+    "wood": {"ichou": 0.55, "keyaki": 0.25, "conifer": 0.2},
+    "aerial": {"ichou": 0.6, "keyaki": 0.25, "conifer": 0.15},
     "lawn": {"keyaki": 0.4, "round": 0.4, "ichou": 0.2},
     "osm": {"round": 0.4, "keyaki": 0.35, "ichou": 0.25},
     "road": {"round": 0.6, "ichou": 0.4},
@@ -206,6 +208,8 @@ def build_trees(pts, heights, c):
                 break
         me = protos[sel][rnd.randrange(VARIANTS)]
         ob = bpy.data.objects.new("tree_%04d" % idx, me)
+        if sel == "ichou":
+            h *= rnd.uniform(1.15, 1.4)        # イチョウは周りより頭ひとつ高い(写真 03 で空に突き出る)
         s = h / H0
         w = rnd.uniform(0.88, 1.12)
         ob.scale = (s * w, s * w * rnd.uniform(0.92, 1.08), s)
