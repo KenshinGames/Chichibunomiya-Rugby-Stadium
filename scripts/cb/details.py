@@ -122,6 +122,27 @@ def build():
         if not mb.empty():
             mb.build("aisles_" + name, c)
 
+        # 座席のないスタンド(北)の長いベンチ: 各段に灰色の金属の腰掛け(写真 Stadium-w3)
+        if layout.base_name(name) in sc.get("no_seats", []):
+            mb = MB(xf)
+            steel = M.get("grey_steel")
+            for t in T:
+                if t["kind"] != "row":
+                    continue
+                a, b = layout.u_range(st, t["d0"] + 0.4)
+                cuts = [(u - w / 2, u + w / 2) for u in AU] + [(a - 1, a + ew), (b - ew, b + 1)]
+                cuts += [(v["u0"] - 0.35, v["u1"] + 0.35) for v in V if v["d0"] - 1e-6 <= t["d0"] < v["d1"] - 1e-6]
+                for (x0, x1) in layout.subtract(a, b, cuts):
+                    if x1 - x0 < 1.0:
+                        continue
+                    mb.box(x0, x1, t["d0"] + 0.28, t["d0"] + 0.52, t["z"] + 0.38, t["z"] + 0.43, steel)
+                    k = max(1, int((x1 - x0) / 2.0))
+                    for j in range(k + 1):
+                        x = x0 + 0.1 + (x1 - x0 - 0.2) * j / k
+                        mb.box(x - 0.03, x + 0.03, t["d0"] + 0.38, t["d0"] + 0.44, t["z"], t["z"] + 0.38, steel)
+            if not mb.empty():
+                mb.build("benches_" + name, c)
+
         # 出入口
         mb = MB(xf)
         for v in V:
