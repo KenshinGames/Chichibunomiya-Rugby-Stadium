@@ -30,6 +30,12 @@ VIEWS = {
     "side_east": ((-120.0, -58.0, 10.0), (0.0, -58.0, 8.0), 30),    # バックスタンドを南の端から
 }
 
+# 手前を切る距離(m)。横からの角度はカメラが周りのビルの中に入るので、スタンドの端の手前までを描かない
+CLIP_START = {
+    "side_west": 36.0,   # メインの南の端は X = -69.7
+    "side_east": 28.0,   # バックの南の端は X = -88.7
+}
+
 
 def look_at(ob, target):
     d = Vector(target) - ob.location
@@ -54,7 +60,7 @@ def make(scene, name, loc=None, target=None, lens=None):
     cam = bpy.data.cameras.new(name)
     cam.lens = lens
     cam.sensor_width = 36.0
-    cam.clip_start = 0.1
+    cam.clip_start = CLIP_START.get(name, 0.1)
     cam.clip_end = 30000.0
     ob = bpy.data.objects.new("cam_" + name, cam)
     ob.location = loc
