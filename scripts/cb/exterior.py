@@ -119,7 +119,32 @@ def _main_gate(c):
     letters = M.emissive("gate_letters_lit", (1.0, 0.9, 0.72, 1.0), 0.0, 2.5, base=M.srgb(150, 142, 128))
     text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.5, letters, c, p_txt,
              (0, 1, 0), jp=True, max_width=G["span"] * 1.05)
+    _main_plaza(c)
     _plaza_night(c)
+
+
+PLAZA = dict(x0=-66.0, x1=70.0, y0=78.0, y1=127.5, keep=7.5, stall_w=2.5, stall_l=5.0,
+             rows=(78.6, 99.0, 106.0))
+# メインの裏の広場(写真 413・2024 年の PNC の組・724): 暗いアスファルトに白い駐車の線。行事の日は露店が並ぶ。
+# 範囲はメインの外壁(Y 77)から歩道ぎわ(Y 128)まで、外壁の長さ。中央の大階段と門からの通り(|X| < 7.5)は線を引かない。並びは推定
+
+
+def _main_plaza(c):
+    P = PLAZA
+    mb = MB()
+    asph = M.get("asphalt_dark")
+    line = M.get("white_paint")
+    mb.rect(P["x0"], P["x1"], P["y0"], P["y1"], 0.0175, asph)      # 歩道(0.014〜0.016)より上、車道より下
+    z = 0.018
+    for y in P["rows"]:
+        for sx in (-1, 1):
+            xa, xb = (P["keep"], P["x1"] - 1.0) if sx > 0 else (P["x0"] + 1.0, -P["keep"])
+            n = int((xb - xa) / P["stall_w"])
+            for k in range(n + 1):
+                x = xa + P["stall_w"] * k
+                mb.rect(x - 0.06, x + 0.06, y, y + P["stall_l"], z, line)
+            mb.rect(xa, xa + n * P["stall_w"], y + P["stall_l"] - 0.06, y + P["stall_l"] + 0.06, z, line)
+    mb.build("main_plaza", c)
 
 
 def _plaza_night(c):

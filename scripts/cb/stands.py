@@ -61,7 +61,15 @@ def _mass(name, c):
     aE, bE = layout.u_range(st, dE)
     ph = st.get("back_parapet", 0.0)
     if bE - aE > 0.05:
-        mb.face(((bE, dE, 0), (aE, dE, 0), (aE, dE, zprev + ph), (bE, dE, zprev + ph)), wall)
+        bb = st.get("back_block")
+        if name == "west" and bb:
+            # 後ろの部屋の下は外壁の吹き抜け(_west_facade)。後ろの壁は斜めの裏面より上だけ、両脇はそのまま
+            zs = _soffit_z(st, dE)
+            for (p0, p1, za) in ((aE, bb["u0"], 0.0), (bb["u0"], bb["u1"], zs), (bb["u1"], bE, 0.0)):
+                if p1 - p0 > 0.05:
+                    mb.face(((p1, dE, za), (p0, dE, za), (p0, dE, zprev + ph), (p1, dE, zprev + ph)), wall)
+        else:
+            mb.face(((bE, dE, 0), (aE, dE, 0), (aE, dE, zprev + ph), (bE, dE, zprev + ph)), wall)
         if ph:
             mb.box(aE, bE, dE - 0.2, dE, zprev, zprev + ph, wall)
     if "_poly" in st:
@@ -273,45 +281,77 @@ def _rooms(c):
     mb.build("main_rooms", c)
 
 
-FACADE = dict(recess=2.0, low_h=6.0, band=(6.0, 7.4), band_out=1.2, col_step=7.0, col=1.0,
-              stair_w=10.0, stair_run=8.0, stair_steps=15, stair_rise=0.28, landing=9.0)
+FACADE = dict(recess=2.0, low_h=3.6, slab=0.4, void=9.0, band_h=1.8, band_out=1.0, col_step=7.0, col=1.1,
+              stair_w=10.0, stair_run=8.0, stair_steps=13, stair_rise=0.277, landing=9.0, panel_w=9.0)
+# 写真 413(2019 年、正面から)・031・048・005・724 から。高さは写真の比からの推定(帯の上端 = 部屋の床 + 0.4 m、1 階 3.6 m)。
 # 階段は OSM の steps(Y 94→86)と空中写真の白い長方形(Y 77〜93.7)から: 外壁の前 9 m の踊り場と 8 m の階段
 
 
+def _soffit_z(st, d):
+    """外壁の吹き抜けの奥に見える、客席の裏の斜めの面の高さ(d は外壁からの深さの座標)。"""
+    F = FACADE
+    bb = st["back_block"]
+    d1 = bb["d1"]
+    z0 = layout.top_z(st)
+    za, zb = F["low_h"] + F["slab"], z0 - F["band_h"] + 0.4
+    dv = d1 - F["void"]
+    t = (d - dv) / max(1e-6, (d1 - 0.6) - dv)
+    return za + (zb - za) * max(0.0, min(1.0, t))
+
+
 def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
-    """メインスタンドの裏(西)の外壁。写真 031・048・005(正面入場口から見る): 1 階は奥の暗い吹き抜けと角柱の列、
-    6〜7.4 m にベージュの通路の帯、その上に小窓のある壁、中央に広い階段。寸法はすべて推定(FACADE)。"""
+    """メインスタンドの裏(西)の外壁。写真 413・031・048・005・724(正面入場口と広場から見る)。下から:
+    1 階(3.6 m)は奥の暗い部屋の列と吹き抜け、その上は柱の間から客席の裏の斜めの面と斜めの梁が見える吹き抜け、
+    部屋の階のすぐ下に明るい灰色の帯(柱の位置に明るい四角)、その上に小窓の並ぶ部屋の階の灰色の外壁。
+    中央は広い階段が 1 階の上の踊り場へ上がり、奥に縦の筋の入った明るい板と、殿下の像。寸法はすべて推定(FACADE)。"""
     F = FACADE
     dr = d1 - F["recess"]
-    beige = M.get("facade_beige")
+    dv = d1 - F["void"]
+    grey = M.get("facade_grey")
+    light = M.get("facade_beige")
     shade = M.get("concourse_dark")
+    soffit = M.get("concrete_dark")
     conc = M.get("concrete")
-    # 1 階: 吹き抜けの奥の壁(暗い)までの躯体、2 階より上は外の面まで
-    mb.box(u0, u1, d0, dr, 0.0, F["low_h"], wall)
-    mb.face(((u1, dr + 0.02, 0.0), (u0, dr + 0.02, 0.0), (u0, dr + 0.02, F["low_h"]), (u1, dr + 0.02, F["low_h"])), shade)
-    mb.box(u0, u1, d0, d1, F["low_h"], z0, wall)
-    # 1 階の天井(吹き抜けの上の板の下面)
-    mb.face(((u0, dr, F["low_h"] - 0.01), (u1, dr, F["low_h"] - 0.01), (u1, d1, F["low_h"] - 0.01), (u0, d1, F["low_h"] - 0.01)), shade)
-    # 角柱
+    lh, sl = F["low_h"], F["slab"]
+    b1 = z0 + 0.4
+    b0 = b1 - F["band_h"]
+    # 1 階: 奥の暗い部屋の面、1 階の上の床板(前の縁は外壁の線)
+    mb.box(u0, u1, dv, dr, 0.0, lh, wall)
+    mb.face(((u1, dr + 0.02, 0.0), (u0, dr + 0.02, 0.0), (u0, dr + 0.02, lh), (u1, dr + 0.02, lh)), shade)
+    mb.box(u0, u1, dv, d1 - 0.3, lh, lh + sl, conc)
+    mb.face(((u0, dr, lh - 0.01), (u1, dr, lh - 0.01), (u1, d1 - 0.3, lh - 0.01), (u0, d1 - 0.3, lh - 0.01)), shade)
+    # 吹き抜けの奥: 客席の裏の斜めの面(外へ向かって上がる)と、両端の壁
+    za, zb = _soffit_z(st, dv), _soffit_z(st, d1 - 0.6)
+    mb.face(((u1, dv, za), (u0, dv, za), (u0, d1 - 0.6, zb), (u1, d1 - 0.6, zb)), soffit)
+    for u in (u0, u1):
+        mb.face(((u, dv, lh + sl), (u, d1, lh + sl), (u, d1, b0), (u, dv, za)), wall)
+    # 柱(地面から帯まで)と、柱ごとの斜めの梁(客席を支える)
     n = int((u1 - u0) // F["col_step"])
-    for i in range(n + 1):
-        u = u0 + 0.5 + (u1 - u0 - 1.0) * i / n
-        mb.box(u - F["col"] / 2, u + F["col"] / 2, d1 - F["col"], d1, 0.0, F["low_h"], conc)
-    # 吹き抜けの天井灯(夜だけ光る。各柱間に 1 本)
+    us = [u0 + 0.6 + (u1 - u0 - 1.2) * i / n for i in range(n + 1)]
+    for u in us:
+        mb.box(u - F["col"] / 2, u + F["col"] / 2, d1 - F["col"], d1, 0.0, b0, conc)
+        mb.cyl((u, dv, za - 0.45), (u, d1 - F["col"], zb - 0.45), 0.42, conc, n=4)
+    # 1 階の吹き抜けの天井灯(夜だけ光る)
     lamp = M.emissive("concourse_light", (1.0, 0.84, 0.62, 1.0), 0.0, 9.0, base=(0.8, 0.8, 0.78, 1.0))
     for i in range(n):
-        um = u0 + 0.5 + (u1 - u0 - 1.0) * (i + 0.5) / n
-        z = F["low_h"] - 0.04
+        um = (us[i] + us[i + 1]) / 2
+        z = lh - 0.04
         mb.face(((um - 1.5, dr + 0.7, z), (um - 1.5, dr + 1.3, z), (um + 1.5, dr + 1.3, z), (um + 1.5, dr + 0.7, z)), lamp)
-    # ベージュの通路の帯(外へ張り出す)
-    b0, b1 = F["band"]
-    mb.box(u0 - 0.5, u1 + 0.5, d1 - 0.2, d1 + F["band_out"], b0, b1, beige)
-    # 上の壁の小窓
-    k = int((u1 - u0) // 3.5)
+    # 明るい灰色の帯(外へ張り出す)と、柱の位置の明るい四角
+    mb.box(u0 - 0.5, u1 + 0.5, d1 - 0.6, d1 + F["band_out"], b0, b1, grey)
+    for u in us:
+        mb.box(u - 0.45, u + 0.45, d1 + F["band_out"], d1 + F["band_out"] + 0.04, b0 + 0.45, b1 - 0.45, light)
+    # 部屋の階の外の面(灰色)と小窓・換気口
+    zt = z0 + st["back_block"]["room_h"]
+    mb.box(u0, u1, d1, d1 + 0.05, b1, zt, grey)
+    k = int((u1 - u0) // 4.2)
     for i in range(k):
-        u = u0 + 1.75 + 3.5 * i
-        mb.box(u - 0.6, u + 0.6, d1, d1 + 0.04, b1 + 1.4, b1 + 2.4, shade)
-    # 中央の大階段(外から 2 階の帯の下まで上がる)。両脇に腰壁
+        u = u0 + 2.1 + 4.2 * i
+        if i % 3 == 1:
+            mb.box(u - 0.5, u + 0.5, d1 + 0.05, d1 + 0.08, b1 + 1.6, b1 + 2.7, shade)     # 小窓
+        else:
+            mb.box(u - 0.25, u + 0.25, d1 + 0.05, d1 + 0.09, b1 + 2.2, b1 + 2.5, shade)   # 換気口
+    # 中央の大階段(外から 1 階の上の踊り場へ)。両脇に腰壁
     w, run, ns, rz = F["stair_w"], F["stair_run"], F["stair_steps"], F["stair_rise"]
     t = run / ns
     ds = d1 + F["landing"]                                       # 階段の上端
@@ -319,12 +359,25 @@ def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
         da = ds + run - (j + 1) * t
         mb.box(-w / 2, w / 2, da, da + t, 0.0, (j + 1) * rz, conc)
     top = ns * rz
-    mb.box(-w / 2, w / 2, dr, ds, 0.0, top, conc)               # 上の踊り場(吹き抜けの奥から外へ 9 m)
+    mb.box(-w / 2 - 2.0, w / 2 + 2.0, dr, ds, 0.0, top, conc)   # 上の踊り場(吹き抜けの奥から外へ 9 m)
     for x in (-w / 2 - 0.3, w / 2):
         mb.face(((x, ds + run, 0.0), (x, ds + run, 1.0), (x, ds, top + 1.0), (x, ds, 0.0)), wall)
         mb.face(((x + 0.3, ds, 0.0), (x + 0.3, ds, top + 1.0), (x + 0.3, ds + run, 1.0), (x + 0.3, ds + run, 0.0)), wall)
         mb.face(((x, ds + run, 1.0), (x + 0.3, ds + run, 1.0), (x + 0.3, ds, top + 1.0), (x, ds, top + 1.0)), wall)
-        mb.box(x, x + 0.3, d1, ds, top, top + 1.0, wall)            # 踊り場の腰壁
+    for x0, x1 in ((-w / 2 - 2.3, -w / 2 - 2.0), (w / 2 + 2.0, w / 2 + 2.3)):
+        mb.box(x0, x1, d1, ds, top, top + 1.0, wall)                # 踊り場の両脇の腰壁
+    mb.box(-w / 2 - 2.0, w / 2 + 2.0, ds - 0.25, ds, top, top + 0.15, wall)
+    # 踊り場の奥の縦の筋の入った明るい板(写真 413 の施設名の英文の板)
+    pw = F["panel_w"]
+    mb.box(-pw / 2, pw / 2, d1 - 0.5, d1 - 0.2, top, b0, light)
+    for i in range(int(pw / 0.6) + 1):
+        x = -pw / 2 + 0.6 * i
+        mb.box(x - 0.04, x + 0.04, d1 - 0.2, d1 - 0.12, top, b0, grey)
+    # 殿下の像(台と立像。写真 413・031。大きさは推定)
+    bronze = M.get("gate_bronze")
+    mb.box(-1.2, -0.4, d1 + 1.2, d1 + 2.0, top, top + 1.3, grey)
+    mb.cyl((-0.8, d1 + 1.6, top + 1.3), (-0.8, d1 + 1.6, top + 2.4), 0.22, bronze, n=8)
+    mb.cyl((-0.8, d1 + 1.6, top + 2.4), (-0.8, d1 + 1.6, top + 3.05), 0.17, bronze, n=8)
 
 
 def _south_back(c):

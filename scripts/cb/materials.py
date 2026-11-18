@@ -599,7 +599,8 @@ define("vom_inner", color=srgb(52, 78, 104), rough=0.8)      # 箱の内側の�
 define("vom_yellow", color=srgb(222, 204, 128), rough=0.7)
 define("vom_red", color=srgb(196, 44, 40), rough=0.6)
 define("jingu_seats", color=srgb(46, 92, 168), rough=0.6)
-define("facade_beige", color=srgb(196, 186, 160), rough=0.8)    # メインの裏の通路の帯(写真 048・005)
+define("facade_beige", color=srgb(200, 196, 182), rough=0.8)    # メインの裏の明るい板と帯の四角(写真 413・048・005)
+define("facade_grey", color=srgb(140, 140, 130), rough=0.85)    # メインの裏の帯と部屋の階の外壁(写真 413 の緑がかった灰色)
 define("concourse_dark", color=srgb(46, 48, 50), rough=0.9)     # スタンドの下の暗い吹き抜け
 define("gate_grey", color=srgb(104, 98, 92), rough=0.7)          # 正面入場口の角柱(写真 031・724 の焦げ茶がかった灰色)
 define("gate_red", color=srgb(196, 72, 44), rough=0.6)          # 角柱の外の角の赤い縦の線(写真 724・45)
