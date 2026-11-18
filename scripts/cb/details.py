@@ -49,7 +49,10 @@ def _gate_no(c, xf, v, zn, name):
     if v.get("no") is None:
         return
     um = (v["u0"] + v["u1"]) / 2
-    p = xf @ Vector((um, v["d1"] - 0.185, zn + 0.5))
+    if _hood(name):
+        p = xf @ Vector((um, v["d0"] - 0.11, zn + 0.9 - 0.35))   # 箱の前の帯の札
+    else:
+        p = xf @ Vector((um, v["d1"] - 0.185, zn + 0.5))
     nrm = (xf.to_3x3() @ Vector((0, -1, 0))).normalized()
     text_obj("gate_no_%s_%d" % (name, v["no"]), str(v["no"]), 0.26, M.get("text_dark"), c, p, nrm)
 
@@ -67,24 +70,46 @@ def _vom(mb, name, T, v):
     nxt = [t for t in T if t["d0"] >= d1 - 1e-6]
     zn = nxt[0]["z"] if nxt else rows[-1]["z"] + rows[-1]["riser"]
     mb.face(((u0, d0, zf + 0.01), (u1, d0, zf + 0.01), (u1, d1 - 0.2, zb), (u0, d1 - 0.2, zb)), conc)
-    for t in rows:
-        top = t["z"] + 0.9
-        mb.box(u0 - 0.2, u0, t["d0"], t["d1"], zb, top, wall)
-        mb.box(u1, u1 + 0.2, t["d0"], t["d1"], zb, top, wall)
-    for u in (u0 - 0.1, u1 + 0.1):
-        rail_line(mb, (u, d0 + 0.1, rows[0]["z"] + 0.9), (u, d1 - 0.1, rows[-1]["z"] + 0.9), h=0.5)
+    hood = _hood(name)
+    zr = zn + 0.9                      # 箱の屋根の高さ(後ろの列の手すりの高さ)
+    if hood:
+        # 写真 023・025: 出入口全体に色の箱がかぶさる。両脇は縦の板、上は平らな屋根、横通路の側に番号の帯、帯の下が開く
+        for (x0, x1) in ((u0 - 0.2, u0), (u1, u1 + 0.2)):
+            mb.box(x0, x1, d0, d1, zb, zr, col)
+        mb.box(u0 - 0.2, u1 + 0.2, d0, d1, zr - 0.15, zr, col)
+        mb.box(u0 - 0.2, u1 + 0.2, d0 - 0.06, d0 + 0.12, zr - HOOD_BAND, zr, col)
+        mb.box(u0 - 0.05, u1 + 0.05, d0 + 0.12, d1 - 0.2, zr - 0.2, zr - 0.15, M.get("vom_inner"))
+    else:
+        for t in rows:
+            top = t["z"] + 0.9
+            mb.box(u0 - 0.2, u0, t["d0"], t["d1"], zb, top, wall)
+            mb.box(u1, u1 + 0.2, t["d0"], t["d1"], zb, top, wall)
+        for u in (u0 - 0.1, u1 + 0.1):
+            rail_line(mb, (u, d0 + 0.1, rows[0]["z"] + 0.9), (u, d1 - 0.1, rows[-1]["z"] + 0.9), h=0.5)
     # 奥の壁と口
-    mb.box(u0 - 0.2, u1 + 0.2, d1 - 0.2, d1, zb, zn, wall)
+    mb.box(u0 - 0.2, u1 + 0.2, d1 - 0.2, d1, zb, zn, wall if not hood else col)
     hm = min(2.3, zn - zb - 0.35)
     mb.box(u0 + 0.35, u1 - 0.35, d1 - 0.23, d1 - 0.2, zb, zb + hm, M.get("black"))
     for (x0, x1) in ((u0 + 0.15, u0 + 0.35), (u1 - 0.35, u1 - 0.15)):
         mb.box(x0, x1, d1 - 0.26, d1 - 0.2, zb, zb + hm + 0.2, col)
     mb.box(u0 + 0.15, u1 - 0.15, d1 - 0.26, d1 - 0.2, zb + hm, zb + hm + 0.2, col)
-    # 口の上: 後ろの列の前の手すりと、ゲート番号の札
-    rail_u(mb, u0 - 0.2, u1 + 0.2, d1 - 0.1, zn, h=0.9)
     um = (u0 + u1) / 2
-    mb.box(um - 0.4, um + 0.4, d1 - 0.16, d1 - 0.12, zn + 0.25, zn + 0.75, col)
-    mb.box(um - 0.32, um + 0.32, d1 - 0.17, d1 - 0.16, zn + 0.31, zn + 0.69, M.get("sign_white"))
+    if hood:
+        # 箱の上の後ろの列の前の手すり、帯の上の番号の札
+        rail_u(mb, u0 - 0.2, u1 + 0.2, d1 - 0.1, zr, h=0.6)
+        mb.box(um - 0.4, um + 0.4, d0 - 0.1, d0 - 0.06, zr - 0.62, zr - 0.08, M.get("sign_white"))
+    else:
+        rail_u(mb, u0 - 0.2, u1 + 0.2, d1 - 0.1, zn, h=0.9)
+        mb.box(um - 0.4, um + 0.4, d1 - 0.16, d1 - 0.12, zn + 0.25, zn + 0.75, col)
+        mb.box(um - 0.32, um + 0.32, d1 - 0.17, d1 - 0.16, zn + 0.31, zn + 0.69, M.get("sign_white"))
+
+
+HOOD_BAND = 0.7     # 箱の前の帯の高さ(写真 023 で開口の 1/3 ほど。推定)
+
+
+def _hood(name):
+    """色の箱がかぶさる出入口か。北スタンドは箱がなく、赤く塗った壁だけ(写真 007・Stadium-w3)。"""
+    return layout.base_name(name) != "north"
 
 
 def build():
