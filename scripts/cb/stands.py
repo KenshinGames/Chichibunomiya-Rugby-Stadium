@@ -66,7 +66,75 @@ def _mass(name, c):
             mb.box(aE, bE, dE - 0.2, dE, zprev, zprev + ph, wall)
     if "_poly" in st:
         _edge_parapets(name, st, mb, ph, wall)
+    elif not st.get("corners"):
+        _end_walls(st, mb, ph)
     mb.build("stand_" + name, c)
+
+
+END_WALL = dict(th=0.3, above=1.0, band_h=1.4, band_out=0.25, rail=0.45, post=2.0)
+
+
+def _end_walls(st, mb, ph):
+    """スタンドの両端の側壁(写真 019・025・018・014・047)。段の外側に厚さ 0.3 m の壁を地面から立て、
+    上端は各段の中央から 1.0 m 上を結んだ斜めの線(段々ではなくまっすぐ上がる)。外側の上の縁は 0.25 m 張り出した帯(写真 014・047 の太い縁)、
+    上に金属の手すり(写真 019・025)。高さと厚さは写真の座席・人との比からの推定。
+    両端が角のブロックにつながるバックスタンド(corners)は折れ目なので作らない(角のブロックの外周は _edge_parapets の手すり)。"""
+    E = END_WALL
+    conc = M.get("concrete")
+    alu = M.get("aluminium")
+    T = layout.treads(st)
+    dE = T[-1]["d1"]
+    # 上端の線: 前の端、各踏み面の中央、後ろの端(後ろの腰壁の高さに合わせる)
+    prof = [(0.0, T[0]["z"] + E["above"])]
+    prof += [((t["d0"] + t["d1"]) / 2, t["z"] + E["above"]) for t in T]
+    prof += [(dE, T[-1]["z"] + max(ph, E["above"]))]
+    # 端の折れ目(平面で端が曲がる所)でも点を足す
+    ds = sorted(set([p[0] for p in prof] + layout.breaks(st, 0.0, dE)))
+
+    def top(d):
+        for (d0, z0), (d1, z1) in zip(prof, prof[1:]):
+            if d0 - 1e-9 <= d <= d1:
+                return z0 + (z1 - z0) * (d - d0) / max(1e-9, d1 - d0)
+        return prof[-1][1]
+
+    def floor(d):
+        for t in T:
+            if t["d0"] - 1e-9 <= d <= t["d1"] + 1e-9:
+                return t["z"]
+        return T[-1]["z"]
+
+    th, bo, bh = E["th"], E["band_out"], E["band_h"]
+    for side, s in ((0, -1.0), (1, 1.0)):
+        def U(d, off=0.0):
+            return layout.u_range(st, d)[side] + s * off
+        for da, db in zip(ds, ds[1:]):
+            za, zb = top(da), top(db)
+            fa, fb = min(floor(da), floor(db)), min(floor(da), floor(db))
+            # 内側(客席側)の面: 段の上から上端まで
+            q = [(U(da), da, fa), (U(db), db, fb), (U(db), db, zb), (U(da), da, za)]
+            mb.face(q if s > 0 else q[::-1], conc)
+            # 外側の面: 地面から帯の下まで(帯より奥に引っこむ)
+            q = [(U(da, th), da, 0.0), (U(db, th), db, 0.0), (U(db, th), db, zb - bh), (U(da, th), da, za - bh)]
+            mb.face(q[::-1] if s > 0 else q, conc)
+            # 帯: 外の面、下の面、上の面
+            q = [(U(da, th + bo), da, za - bh), (U(db, th + bo), db, zb - bh), (U(db, th + bo), db, zb), (U(da, th + bo), da, za)]
+            mb.face(q[::-1] if s > 0 else q, conc)
+            q = [(U(da, th), da, za - bh), (U(db, th), db, zb - bh), (U(db, th + bo), db, zb - bh), (U(da, th + bo), da, za - bh)]
+            mb.face(q if s > 0 else q[::-1], conc)
+            q = [(U(da), da, za), (U(db), db, zb), (U(db, th + bo), db, zb), (U(da, th + bo), da, za)]
+            mb.face(q[::-1] if s > 0 else q, conc)
+        # 前と後ろの小口
+        for d, zt, sg in ((0.0, top(0.0), -1.0), (dE, top(dE), 1.0)):
+            u0, u1 = U(d), U(d, th + bo)
+            mb.face(((u0, d, 0.0), (u1, d, 0.0), (u1, d, zt), (u0, d, zt)), conc)
+        # 手すり: 上端の線の 0.45 m 上、2 m ごとに支柱
+        um = lambda d: U(d, th / 2)
+        L = dE
+        n = max(2, int(L / E["post"] + 0.5))
+        for i in range(n):
+            d0, d1 = L * i / n, L * (i + 1) / n
+            mb.cyl((um(d0), d0, top(d0) + E["rail"]), (um(d1), d1, top(d1) + E["rail"]), 0.03, alu, n=6)
+            mb.cyl((um(d0), d0, top(d0)), (um(d0), d0, top(d0) + E["rail"]), 0.022, alu, n=6)
 
 
 def _edge_parapets(name, st, mb, ph, wall):
