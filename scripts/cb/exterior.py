@@ -50,30 +50,75 @@ def build():
     _trees(S, c)
 
 
-GATE = dict(x=0.5, y=131.0, span=10.0, pillar=0.9, clear=4.7, beam=0.75, depth=0.9)
+GATE = dict(x=0.5, y=131.0, span=10.0, pillar=1.2, clear=4.7, beam=1.2, depth=1.2,
+            board=2.6, board_gap=0.25, gate_h=2.6, fence=22.0, fence_h=2.2)
+# 寸法は写真 724・031・005・Stadium(45) の比率からの推定。梁の下 4.7 m は前の推定のまま
 
 
 def _main_gate(c):
-    """正面入場口の門(西の歩道ぎわ、OSM の入口の通路が歩道から入る所)。写真 031・005: 濃い灰色の角柱 2 本に赤茶の帯、
-    上の梁に施設名「国立競技場秩父宮ラグビー場」。開口 10 m・柱 0.9 m 角・梁の下 4.7 m は写真の比率からの推定。"""
+    """正面入場口の門(西の歩道ぎわ、OSM の入口の通路が歩道から入る所)。写真 724(2025 年)・031・005・45:
+    焦げ茶の太い角柱 2 本(外の角に赤い縦の線)、施設名「国立競技場秩父宮ラグビー場」を浮き彫りにした深い梁、
+    その上に全幅の看板の枠(行事の幕を張る。何もない日は焦げ茶の板)、柱の間に鉄の格子の引き戸(開けて柱の脇に寄せる)、
+    両脇の歩道ぎわに黒い鉄の柵。"""
     from mathutils import Vector
     from .util import text_obj
     G = GATE
     mb = MB()
-    dark, band, bronze = M.get("gate_grey"), M.get("brick_wall"), M.get("gate_bronze")
+    dark, red, bronze = M.get("gate_grey"), M.get("gate_red"), M.get("gate_bronze")
+    steel = M.get("dark_steel")
     x0, y0, h, p = G["x"], G["y"], G["clear"], G["pillar"]
-    top = h + G["beam"]
+    zb0 = h + G["beam"]
+    top = zb0 + G["board_gap"] + G["board"]
+    xl, xr = x0 - G["span"] / 2 - p, x0 + G["span"] / 2 + p
     for sx in (-1, 1):
         cx = x0 + sx * (G["span"] / 2 + p / 2)
-        mb.box(cx - p / 2, cx + p / 2, y0 - p / 2, y0 + p / 2, 0.0, top + 0.1, dark)
-        for zb in (0.9, 2.2, 3.5):                      # 赤茶の帯
-            mb.box(cx - p / 2 - 0.02, cx + p / 2 + 0.02, y0 - p / 2 - 0.02, y0 + p / 2 + 0.02, zb, zb + 0.18, band)
-    mb.box(x0 - G["span"] / 2 - p, x0 + G["span"] / 2 + p, y0 - G["depth"] / 2, y0 + G["depth"] / 2, h, top, bronze)
+        mb.box(cx - p / 2, cx + p / 2, y0 - p / 2, y0 + p / 2, 0.0, top, dark)
+        # 外の角の赤い縦の線(道の側と門の内側の両方)
+        ox = cx + sx * (p / 2 - 0.12)
+        for oy in (y0 + p / 2, y0 - p / 2):
+            mb.box(ox - 0.06, ox + 0.06, oy - 0.02, oy + 0.02, 0.4, top - 0.3, red)
+        for zb in (1.2, 2.6, 4.0):                      # 横の細い赤い線(写真 031・724)
+            mb.box(cx - p / 2 - 0.02, cx + p / 2 + 0.02, y0 - p / 2 - 0.02, y0 + p / 2 + 0.02, zb, zb + 0.08, red)
+    # 名前の梁と、その上の看板の枠(枠と縦の目地)
+    mb.box(xl, xr, y0 - G["depth"] / 2, y0 + G["depth"] / 2, h, zb0, bronze)
+    zb1 = zb0 + G["board_gap"]
+    mb.box(xl, xr, y0 - 0.25, y0 + 0.25, zb0, zb1, steel)
+    mb.box(xl + 0.1, xr - 0.1, y0 - 0.2, y0 + 0.2, zb1, top, M.get("gate_board"))
+    for k in range(9):
+        xx = xl + (xr - xl) * k / 8
+        mb.box(xx - 0.05, xx + 0.05, y0 + 0.2, y0 + 0.26, zb1, top, steel)
+    mb.box(xl, xr, y0 + 0.2, y0 + 0.28, top - 0.12, top, steel)
+    mb.box(xl, xr, y0 + 0.2, y0 + 0.28, zb1, zb1 + 0.12, steel)
+    # 鉄の格子の引き戸: 開けて両方の柱の内側に寄せる(2 枚、各 2.5 m)
+    gh = G["gate_h"]
+    for sx in (-1, 1):
+        xin = x0 + sx * (G["span"] / 2)
+        xa, xb = sorted((xin, xin - sx * 2.5))
+        yy = y0 - p / 2 - 0.3
+        for zz in (0.12, gh - 0.1, gh / 2):
+            mb.box(xa, xb, yy - 0.04, yy + 0.04, zz, zz + 0.08, steel)
+        n = int((xb - xa) / 0.14)
+        for k in range(n + 1):
+            xx = xa + (xb - xa) * k / n
+            mb.box(xx - 0.02, xx + 0.02, yy - 0.02, yy + 0.02, 0.1, gh, steel)
+    # 両脇の歩道ぎわの黒い鉄の柵(縦の格子)
+    fh = G["fence_h"]
+    for sx in (-1, 1):
+        xa, xb = sorted((x0 + sx * (G["span"] / 2 + p), x0 + sx * (G["span"] / 2 + p + G["fence"])))
+        for zz in (0.15, fh - 0.08):
+            mb.box(xa, xb, y0 - 0.03, y0 + 0.03, zz, zz + 0.06, steel)
+        n = int((xb - xa) / 0.15)
+        for k in range(n + 1):
+            xx = xa + (xb - xa) * k / n
+            mb.box(xx - 0.015, xx + 0.015, y0 - 0.015, y0 + 0.015, 0.0, fh, steel)
+        for k in range(int((xb - xa) / 2.5) + 1):
+            xx = xa + 2.5 * k
+            mb.box(xx - 0.05, xx + 0.05, y0 - 0.05, y0 + 0.05, 0.0, fh + 0.1, steel)
     mb.build("main_gate", c)
     p_txt = Vector((x0, y0 + G["depth"] / 2 + 0.02, h + G["beam"] / 2))
-    letters = M.emissive("gate_letters_lit", (1.0, 0.9, 0.72, 1.0), 0.0, 2.5, base=M.srgb(176, 168, 150))
-    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.55, letters, c, p_txt,
-             (0, 1, 0), jp=True, max_width=G["span"] * 0.95)
+    letters = M.emissive("gate_letters_lit", (1.0, 0.9, 0.72, 1.0), 0.0, 2.5, base=M.srgb(150, 142, 128))
+    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.5, letters, c, p_txt,
+             (0, 1, 0), jp=True, max_width=G["span"] * 1.05)
     _plaza_night(c)
 
 
