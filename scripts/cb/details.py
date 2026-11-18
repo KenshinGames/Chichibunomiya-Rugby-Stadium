@@ -108,8 +108,24 @@ HOOD_BAND = 0.7     # 箱の前の帯の高さ(写真 023 で開口の 1/3 ほ�
 
 
 def _hood(name):
-    """色の箱がかぶさる出入口か。北スタンドは箱がなく、赤く塗った壁だけ(写真 007・Stadium-w3)。"""
-    return layout.base_name(name) != "north"
+    """色の箱がかぶさる出入口か。箱はバックスタンドだけ(写真 023・025・03 にはっきり写る)。
+    北スタンドは箱がなく赤く塗った壁だけ(写真 007・Stadium-w3)。南スタンドは写真 04・019 に、メインスタンドは写真 03 の手前と Rugby1 に箱が写らない。"""
+    return name == "east"           # 角のブロック(east_c0・c1)の出入口は灰色の壁(写真 02 の手前)
+
+
+FRONT_MESH = ("south",)     # 前の壁の上が網の柵のスタンド(写真 025: 南スタンドの前の通路と芝の間)
+
+
+def _front_mesh(mb, u0, u1, d, z, h=1.2):
+    """前の壁の上の網の柵(高さ 1.2 m、2.5 m ごとの柱、上下の横棒)。写真 025。"""
+    mesh, steel = M.get("fence_mesh"), M.get("grey_steel")
+    mb.face(((u0, d, z), (u1, d, z), (u1, d, z + h), (u0, d, z + h)), mesh)
+    for zz in (z + 0.04, z + h):
+        mb.cyl((u0, d, zz), (u1, d, zz), 0.025, steel, n=6)
+    n = max(1, int((u1 - u0) / 2.5))
+    for i in range(n + 1):
+        u = u0 + (u1 - u0) * i / n
+        mb.cyl((u, d, z), (u, d, z + h), 0.03, steel, n=6)
 
 
 def build():
@@ -180,7 +196,10 @@ def build():
         # 手すり: 前の壁の上、横通路の前
         mb = MB(xf)
         a, b = layout.u_range(st, 0.15)
-        rail_u(mb, a + 0.1, b - 0.1, 0.15, st["front_wall_h"])
+        if layout.base_name(name) in FRONT_MESH:
+            _front_mesh(mb, a + 0.1, b - 0.1, 0.15, st["front_wall_h"])
+        else:
+            rail_u(mb, a + 0.1, b - 0.1, 0.15, st["front_wall_h"])
         flats = [t for t in T if t["kind"] == "flat"]
         mids = flats[1:-1] if T[0]["kind"] == "flat" else flats[:-1]
         for t in mids:

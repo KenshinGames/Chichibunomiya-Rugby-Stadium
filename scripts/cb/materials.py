@@ -613,6 +613,7 @@ define("glass", color=srgb(150, 175, 185), rough=0.06, metal=0.0, transmission=0
 define("glass_dark", color=srgb(34, 44, 52), rough=0.05, spec=1.0, coat=1.0)
 define("poly_clear", color=srgb(225, 235, 240), rough=0.15, alpha=0.35)
 define("bench_blue", color=srgb(30, 60, 130), rough=0.5)
+define("fence_mesh", color=srgb(96, 112, 104), rough=0.6, metal=0.3, alpha=0.38)   # 網の柵(写真 018・025。目の細かい金網を半透明で)
 define("aluminium", color=srgb(190, 192, 194), rough=0.35, metal=0.9)
 define("roof_sheet", color=srgb(196, 198, 196), rough=0.55, metal=0.2)
 define("roof_under", color=srgb(214, 214, 210), rough=0.6)

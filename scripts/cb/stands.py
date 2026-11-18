@@ -68,10 +68,63 @@ def _mass(name, c):
         _edge_parapets(name, st, mb, ph, wall)
     elif not st.get("corners"):
         _end_walls(st, mb, ph)
+        if name in END_WALK:
+            _end_walk(st, mb, END_WALK[name])
+        if name in FRONT_WALK_EXT:
+            _front_walk_ext(st, mb, FRONT_WALK_EXT[name])
     mb.build("stand_" + name, c)
 
 
 END_WALL = dict(th=0.3, above=1.0, band_h=1.4, band_out=0.25, rail=0.45, post=2.0)
+
+
+END_WALK = {"north": dict(w=3.2)}
+# 写真 018(北西の角の外から): 北スタンドの端の壁ぞいに、外から芝の角へ行く通路があり、外側は柵。
+# 南スタンドの前の通路(写真 025)は端の脇ではなく座席の前にあるので、寸法の最前の flat で作り、両端から外へ FRONT_WALK_EXT だけ延ばす。
+# 北の通路の高さは模型の地面(芝と同じ高さ)に置いた(写真 018 で段差は見えない)
+
+FRONT_WALK_EXT = {"south": 3.0}   # 写真 025: 前の通路は端の壁より先(メインスタンドとの間)へ続く。長さは推定
+
+
+def _end_walk(st, mb, cfg):
+    """端の壁の外の通路(舗装の帯)と、その外側の網の柵(高さ 1.8 m、2.5 m ごとの柱)。"""
+    E = END_WALL
+    pave = M.get("paving_grey")
+    mesh = M.get("fence_mesh")
+    steel = M.get("grey_steel")
+    T = layout.treads(st)
+    dE = T[-1]["d1"]
+    off0 = E["th"] + E["band_out"]
+    w = cfg["w"]
+    for side, s in ((0, -1.0), (1, 1.0)):
+        U = lambda d, o: layout.u_range(st, d)[side] + s * o
+        ds = [0.0] + layout.breaks(st, 0.0, dE) + [dE]
+        ds = sorted(set(ds))
+        for da, db in zip(ds, ds[1:]):
+            q = [(U(da, off0), da, 0.03), (U(db, off0), db, 0.03), (U(db, off0 + w), db, 0.03), (U(da, off0 + w), da, 0.03)]
+            mb.face(q if s < 0 else q[::-1], pave)
+            # 柵: 網の面と上下の横棒
+            f = [(U(da, off0 + w), da, 0.0), (U(db, off0 + w), db, 0.0), (U(db, off0 + w), db, 1.8), (U(da, off0 + w), da, 1.8)]
+            mb.face(f, mesh)
+            for z in (0.05, 1.8):
+                mb.cyl((U(da, off0 + w), da, z), (U(db, off0 + w), db, z), 0.025, steel, n=6)
+        n = max(1, int(dE / 2.5 + 0.5))
+        for i in range(n + 1):
+            d = dE * i / n
+            mb.cyl((U(d, off0 + w), d, 0.0), (U(d, off0 + w), d, 1.8), 0.035, steel, n=6)
+
+
+def _front_walk_ext(st, mb, ext):
+    """最前の通路を両端から外へ延ばす台(高さは前の壁と同じ)と、芝の側の網の柵。写真 025。"""
+    from .details import _front_mesh
+    pave, wall = M.get("paving_grey"), M.get("concrete_light")
+    T = layout.treads(st)
+    z, d1 = T[0]["z"], T[0]["d1"]
+    a, b = layout.u_range(st, 0.0)
+    for (u0, u1) in ((a - ext, a), (b, b + ext)):
+        mb.box(u0, u1, 0.0, d1, 0.0, z, wall, bottom=False)
+        mb.face(((u0, 0.0, z + 0.005), (u1, 0.0, z + 0.005), (u1, d1, z + 0.005), (u0, d1, z + 0.005)), pave)
+        _front_mesh(mb, u0, u1, 0.15, z)
 
 
 def _end_walls(st, mb, ph):
@@ -84,12 +137,14 @@ def _end_walls(st, mb, ph):
     alu = M.get("aluminium")
     T = layout.treads(st)
     dE = T[-1]["d1"]
+    # 最前が広い通路(2 m 超)なら、壁は座席の始まりから(写真 025: 前の通路の端は開いている)
+    ds0 = T[0]["d1"] if T[0]["kind"] == "flat" and T[0]["d1"] - T[0]["d0"] > 2.0 else 0.0
     # 上端の線: 前の端、各踏み面の中央、後ろの端(後ろの腰壁の高さに合わせる)
-    prof = [(0.0, T[0]["z"] + E["above"])]
-    prof += [((t["d0"] + t["d1"]) / 2, t["z"] + E["above"]) for t in T]
+    prof = [(ds0, T[0]["z"] + E["above"])]
+    prof += [((t["d0"] + t["d1"]) / 2, t["z"] + E["above"]) for t in T if (t["d0"] + t["d1"]) / 2 > ds0 + 1e-6]
     prof += [(dE, T[-1]["z"] + max(ph, E["above"]))]
     # 端の折れ目(平面で端が曲がる所)でも点を足す
-    ds = sorted(set([p[0] for p in prof] + layout.breaks(st, 0.0, dE)))
+    ds = sorted(set([p[0] for p in prof] + [b for b in layout.breaks(st, 0.0, dE) if b > ds0]))
 
     def top(d):
         for (d0, z0), (d1, z1) in zip(prof, prof[1:]):
@@ -124,15 +179,15 @@ def _end_walls(st, mb, ph):
             q = [(U(da), da, za), (U(db), db, zb), (U(db, th + bo), db, zb), (U(da, th + bo), da, za)]
             mb.face(q[::-1] if s > 0 else q, conc)
         # 前と後ろの小口
-        for d, zt, sg in ((0.0, top(0.0), -1.0), (dE, top(dE), 1.0)):
+        for d, zt, sg in ((ds0, top(ds0), -1.0), (dE, top(dE), 1.0)):
             u0, u1 = U(d), U(d, th + bo)
             mb.face(((u0, d, 0.0), (u1, d, 0.0), (u1, d, zt), (u0, d, zt)), conc)
         # 手すり: 上端の線の 0.45 m 上、2 m ごとに支柱
         um = lambda d: U(d, th / 2)
-        L = dE
+        L = dE - ds0
         n = max(2, int(L / E["post"] + 0.5))
         for i in range(n):
-            d0, d1 = L * i / n, L * (i + 1) / n
+            d0, d1 = ds0 + L * i / n, ds0 + L * (i + 1) / n
             mb.cyl((um(d0), d0, top(d0) + E["rail"]), (um(d1), d1, top(d1) + E["rail"]), 0.03, alu, n=6)
             mb.cyl((um(d0), d0, top(d0)), (um(d0), d0, top(d0) + E["rail"]), 0.022, alu, n=6)
 
