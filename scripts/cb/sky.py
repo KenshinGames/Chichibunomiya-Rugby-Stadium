@@ -178,6 +178,9 @@ def setup_render(scene, samples=64, res=(1600, 900)):
         except Exception as e:  # GPU が使えなければ CPU で続ける
             print("GPU を使えません:", e)
     scene.cycles.samples = samples
+    # 4K は画面を 1024 画素の区切りで描く(区切らないと 16 GB の Mac で GPU のメモリが足りず止まった。2026-11-19)
+    scene.cycles.use_auto_tile = True
+    scene.cycles.tile_size = 1024
     scene.cycles.use_adaptive_sampling = True
     scene.cycles.adaptive_threshold = 0.02
     scene.cycles.use_denoising = True
