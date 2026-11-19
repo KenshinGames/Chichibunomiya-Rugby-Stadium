@@ -50,83 +50,20 @@ def build():
     _trees(S, c)
 
 
-GATE = dict(x=0.5, y=131.0, span=10.0, pillar=1.2, clear=4.7, beam=1.2, depth=1.2,
-            board=2.6, board_gap=0.25, gate_h=2.6, fence=22.0, fence_h=2.2)
-# 寸法は写真 724・031・005・Stadium(45) の比率からの推定。梁の下 4.7 m は前の推定のまま
-
-
 def _main_gate(c):
-    """正面入場口の門(西の歩道ぎわ、OSM の入口の通路が歩道から入る所)。写真 724(2025 年)・031・005・45:
-    焦げ茶の太い角柱 2 本(外の角に赤い縦の線)、施設名「国立競技場秩父宮ラグビー場」を浮き彫りにした深い梁、
-    その上に全幅の看板の枠(行事の幕を張る。何もない日は焦げ茶の板)、柱の間に鉄の格子の引き戸(開けて柱の脇に寄せる)、
-    両脇の歩道ぎわに黒い鉄の柵。"""
-    from mathutils import Vector
-    from .util import text_obj
-    G = GATE
-    mb = MB()
-    dark, red, bronze = M.get("gate_grey"), M.get("gate_red"), M.get("gate_bronze")
-    steel = M.get("dark_steel")
-    x0, y0, h, p = G["x"], G["y"], G["clear"], G["pillar"]
-    zb0 = h + G["beam"]
-    top = zb0 + G["board_gap"] + G["board"]
-    xl, xr = x0 - G["span"] / 2 - p, x0 + G["span"] / 2 + p
-    for sx in (-1, 1):
-        cx = x0 + sx * (G["span"] / 2 + p / 2)
-        mb.box(cx - p / 2, cx + p / 2, y0 - p / 2, y0 + p / 2, 0.0, top, dark)
-        # 外の角の赤い縦の線(道の側と門の内側の両方)
-        ox = cx + sx * (p / 2 - 0.12)
-        for oy in (y0 + p / 2, y0 - p / 2):
-            mb.box(ox - 0.06, ox + 0.06, oy - 0.02, oy + 0.02, 0.4, top - 0.3, red)
-        for zb in (1.2, 2.6, 4.0):                      # 横の細い赤い線(写真 031・724)
-            mb.box(cx - p / 2 - 0.02, cx + p / 2 + 0.02, y0 - p / 2 - 0.02, y0 + p / 2 + 0.02, zb, zb + 0.08, red)
-    # 名前の梁と、その上の看板の枠(枠と縦の目地)
-    mb.box(xl, xr, y0 - G["depth"] / 2, y0 + G["depth"] / 2, h, zb0, bronze)
-    zb1 = zb0 + G["board_gap"]
-    mb.box(xl, xr, y0 - 0.25, y0 + 0.25, zb0, zb1, steel)
-    mb.box(xl + 0.1, xr - 0.1, y0 - 0.2, y0 + 0.2, zb1, top, M.get("gate_board"))
-    for k in range(9):
-        xx = xl + (xr - xl) * k / 8
-        mb.box(xx - 0.05, xx + 0.05, y0 + 0.2, y0 + 0.26, zb1, top, steel)
-    mb.box(xl, xr, y0 + 0.2, y0 + 0.28, top - 0.12, top, steel)
-    mb.box(xl, xr, y0 + 0.2, y0 + 0.28, zb1, zb1 + 0.12, steel)
-    # 鉄の格子の引き戸: 開けて両方の柱の内側に寄せる(2 枚、各 2.5 m)
-    gh = G["gate_h"]
-    for sx in (-1, 1):
-        xin = x0 + sx * (G["span"] / 2)
-        xa, xb = sorted((xin, xin - sx * 2.5))
-        yy = y0 - p / 2 - 0.3
-        for zz in (0.12, gh - 0.1, gh / 2):
-            mb.box(xa, xb, yy - 0.04, yy + 0.04, zz, zz + 0.08, steel)
-        n = int((xb - xa) / 0.14)
-        for k in range(n + 1):
-            xx = xa + (xb - xa) * k / n
-            mb.box(xx - 0.02, xx + 0.02, yy - 0.02, yy + 0.02, 0.1, gh, steel)
-    # 両脇の歩道ぎわの黒い鉄の柵(縦の格子)
-    fh = G["fence_h"]
-    for sx in (-1, 1):
-        xa, xb = sorted((x0 + sx * (G["span"] / 2 + p), x0 + sx * (G["span"] / 2 + p + G["fence"])))
-        for zz in (0.15, fh - 0.08):
-            mb.box(xa, xb, y0 - 0.03, y0 + 0.03, zz, zz + 0.06, steel)
-        n = int((xb - xa) / 0.15)
-        for k in range(n + 1):
-            xx = xa + (xb - xa) * k / n
-            mb.box(xx - 0.015, xx + 0.015, y0 - 0.015, y0 + 0.015, 0.0, fh, steel)
-        for k in range(int((xb - xa) / 2.5) + 1):
-            xx = xa + 2.5 * k
-            mb.box(xx - 0.05, xx + 0.05, y0 - 0.05, y0 + 0.05, 0.0, fh + 0.1, steel)
-    mb.build("main_gate", c)
-    p_txt = Vector((x0, y0 + G["depth"] / 2 + 0.02, h + G["beam"] / 2))
-    letters = M.emissive("gate_letters_lit", (1.0, 0.9, 0.72, 1.0), 0.0, 2.5, base=M.srgb(150, 142, 128))
-    text_obj("gate_name", "国 立 競 技 場 秩 父 宮 ラ グ ビ ー 場", G["beam"] * 0.5, letters, c, p_txt,
-             (0, 1, 0), jp=True, max_width=G["span"] * 1.05)
+    """正面入場口の門と、メインの裏の中央の細部(entrance.py)、広場と夜の光。"""
+    from . import entrance, stands
+    entrance.gate(c)
+    entrance.facade_center(c, stands.FACADE)
     _main_plaza(c)
     _plaza_night(c)
 
 
 PLAZA = dict(x0=-66.0, x1=70.0, y0=78.0, y1=127.5, keep=7.5, stall_w=2.5, stall_l=5.0,
-             rows=(78.6, 99.0, 106.0))
-# メインの裏の広場(写真 413・2024 年の PNC の組・724): 暗いアスファルトに白い駐車の線。行事の日は露店が並ぶ。
-# 範囲はメインの外壁(Y 77)から歩道ぎわ(Y 128)まで、外壁の長さ。中央の大階段と門からの通り(|X| < 7.5)は線を引かない。並びは推定
+             near_row=78.6, lanes=(87.0, 112.0), lane_gap=2.5, block=(9.0, 64.0))
+# メインの裏の広場。写真 84327(2025-01-19、正面から)・413(2019)・724(2025):
+#   暗いアスファルト。外壁ぎわは車を外壁へ向けて止める区画(写真 413)、その先の広い所は外壁と平行な長い線が 2.5 m おき(写真 84327)、
+#   線の端をそろえる直角の線。中央の大階段と門からの通り(|X| < 7.5)には線がない。線の数と長さは写真からの読み取り(±1 本)
 
 
 def _main_plaza(c):
@@ -136,28 +73,31 @@ def _main_plaza(c):
     line = M.get("white_paint")
     mb.rect(P["x0"], P["x1"], P["y0"], P["y1"], 0.0175, asph)      # 歩道(0.014〜0.016)より上、車道より下
     z = 0.018
-    for y in P["rows"]:
-        for sx in (-1, 1):
-            xa, xb = (P["keep"], P["x1"] - 1.0) if sx > 0 else (P["x0"] + 1.0, -P["keep"])
-            n = int((xb - xa) / P["stall_w"])
-            for k in range(n + 1):
-                x = xa + P["stall_w"] * k
-                mb.rect(x - 0.06, x + 0.06, y, y + P["stall_l"], z, line)
-            mb.rect(xa, xa + n * P["stall_w"], y + P["stall_l"] - 0.06, y + P["stall_l"] + 0.06, z, line)
+    y = P["near_row"]
+    for sx in (-1, 1):
+        xa, xb = (P["keep"], P["x1"] - 1.0) if sx > 0 else (P["x0"] + 1.0, -P["keep"])
+        n = int((xb - xa) / P["stall_w"])
+        for k in range(n + 1):
+            x = xa + P["stall_w"] * k
+            mb.rect(x - 0.06, x + 0.06, y, y + P["stall_l"], z, line)
+        mb.rect(xa, xa + n * P["stall_w"], y + P["stall_l"] - 0.06, y + P["stall_l"] + 0.06, z, line)
+    ya, yb = P["lanes"]
+    bx0, bx1 = P["block"]
+    for sx in (-1, 1):
+        xa, xb = sorted((sx * bx0, sx * bx1))
+        k = int((yb - ya) / P["lane_gap"])
+        for j in range(k + 1):
+            yy = ya + P["lane_gap"] * j
+            mb.rect(xa, xb, yy - 0.06, yy + 0.06, z, line)
+        xe = sx * bx0
+        mb.rect(xe - 0.06, xe + 0.06, ya, ya + P["lane_gap"] * k, z, line)
     mb.build("main_plaza", c)
 
 
 def _plaza_night(c):
-    """正面入場口の夜: 門の両脇の街灯(写真 031 の丸い頭の街灯、高さ 7 m は推定)と、外壁と広場を照らす面の光。"""
+    """正面入場口の夜: 外壁と広場を照らす面の光(街灯は entrance.py の球の街灯と曲がった街灯)。"""
     from mathutils import Vector
     from .lights import _area
-    mb = MB()
-    pole = M.get("dark_steel")
-    head = M.emissive("street_lamp", (1.0, 0.9, 0.75, 1.0), 0.0, 40.0, base=(0.85, 0.85, 0.82, 1.0))
-    for (x, y) in ((-13.0, 128.5), (15.0, 128.5), (-9.0, 100.0), (11.0, 100.0)):
-        mb.cyl((x, y, 0.0), (x, y, 6.6), 0.08, pole, n=8)
-        mb.box(x - 0.3, x + 0.3, y - 0.3, y + 0.3, 6.6, 7.1, head)
-    mb.build("street_lamps", c)
     nc = coll("night_lights")
     for (x, energy) in ((-30.0, 1.6e4), (0.0, 2.0e4), (30.0, 1.6e4)):
         _area("facade_light_%d" % int(x), nc, Vector((x, 112.0, 9.0)), (0.0, -1.0, -0.25), 26.0, 6.0, energy, spread=110.0)
@@ -511,10 +451,14 @@ TREE_H = {"wood": (13.0, 21.0), "row": (14.0, 20.0), "aerial": (12.0, 20.0), "la
           "osm": (9.0, 16.0), "road": (7.0, 12.0)}
 
 
+# 門の内側、道から見て左(+X)の柵ぎわの背の高い針葉樹(写真 724・70564・202304011520)。OSM にも空中写真の木にもないので足す。位置は写真からの読み取り
+GATE_CONIFERS = [(10.0, 125.5), (15.5, 122.5), (21.0, 126.0)]
+
+
 def _trees(S, c):
     from . import trees
     from .util import coll as _coll
     rnd = random.Random(1953)
-    pts = tree_points(S)
+    pts = tree_points(S) + [(x, y, "wood") for (x, y) in GATE_CONIFERS]
     hs = [rnd.uniform(*TREE_H.get(kind, (7.0, 14.0))) for (_, _, kind) in pts]
     trees.build_trees(pts, hs, _coll("trees", c))

@@ -282,9 +282,10 @@ def _rooms(c):
 
 
 FACADE = dict(recess=2.0, low_h=3.6, slab=0.4, void=9.0, band_h=1.8, band_out=1.0, col_step=7.0, col=1.1,
-              stair_w=10.0, stair_run=8.0, stair_steps=13, stair_rise=0.277, landing=9.0, panel_w=9.0)
-# 写真 413(2019 年、正面から)・031・048・005・724 から。高さは写真の比からの推定(帯の上端 = 部屋の床 + 0.4 m、1 階 3.6 m)。
-# 階段は OSM の steps(Y 94→86)と空中写真の白い長方形(Y 77〜93.7)から: 外壁の前 9 m の踊り場と 8 m の階段
+              stair_w=10.0, stair_run=8.0, stair_steps=24, stair_rise=0.15, landing=1.8, panel_w=9.0)
+# 写真 413(2019 年、正面から)・031・048・005・724 から。階段は写真 Captain 12259・84327 の細かい段(蹴上げ約 0.15 m、24 段)。高さは写真の比からの推定(帯の上端 = 部屋の床 + 0.4 m、1 階 3.6 m)。
+# 階段: 写真 84327(正面)と Captain 12259 では、上りきった所がすぐ像と英文の板(踊り場はごく浅い)。OSM の steps(Y 94→86)は 8 m ほど外にずれているとみて、
+# 長さ 8 m だけを使い、踊り場 1.8 m の先に置いた(階段の下端 Y ≒ 86.8)
 
 
 def _soffit_z(st, d):
@@ -326,11 +327,21 @@ def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
     for u in (u0, u1):
         mb.face(((u, dv, lh + sl), (u, d1, lh + sl), (u, d1, b0), (u, dv, za)), wall)
     # 柱(地面から帯まで)と、柱ごとの斜めの梁(客席を支える)
-    n = int((u1 - u0) // F["col_step"])
-    us = [u0 + 0.6 + (u1 - u0 - 1.2) * i / n for i in range(n + 1)]
+    # 柱の並び: 中央の英文の板が柱 1 間分に収まる(写真 84327・Captain 12259)。間は (u1 − u0) / 14 ≒ 7.0 m、両端にも柱
+    step = (u1 - u0) / 14
+    us = [u0 + 0.6] + [(k + 0.5) * step for k in range(-7, 7)] + [u1 - 0.6]
+    n = len(us) - 1
     for u in us:
         mb.box(u - F["col"] / 2, u + F["col"] / 2, d1 - F["col"], d1, 0.0, b0, conc)
-        mb.cyl((u, dv, za - 0.45), (u, d1 - F["col"], zb - 0.45), 0.42, conc, n=4)
+        mb.cyl((u, dv, za - 0.45), (u, d1 - F["col"], zb - 0.45), 0.42, soffit, n=4)   # 客席を支える奥への斜めの梁(暗い)
+    # 柱の間の V 字の筋かい(写真 84327・413: 柱の上の端から柱間の中央の下へ)。暗い吹き抜けの奥(外壁の線より 3 m 奥)で細い
+    for i in range(n):
+        ua, ub = us[i], us[i + 1]
+        if ub - ua < 3.0 or (ua < 0.0 < ub):
+            continue                      # 中央(英文の板)の柱間には筋かいがない
+        um = (ua + ub) / 2
+        for ux in (ua, ub):
+            mb.bar((ux, d1 - 3.0, b0 - 0.3), (um, d1 - 3.0, lh + sl + 0.2), 0.3, 0.3, soffit)
     # 1 階の吹き抜けの天井灯(夜だけ光る)
     lamp = M.emissive("concourse_light", (1.0, 0.84, 0.62, 1.0), 0.0, 9.0, base=(0.8, 0.8, 0.78, 1.0))
     for i in range(n):
@@ -367,17 +378,16 @@ def _west_facade(mb, st, u0, u1, d0, d1, z0, wall):
     for x0, x1 in ((-w / 2 - 2.3, -w / 2 - 2.0), (w / 2 + 2.0, w / 2 + 2.3)):
         mb.box(x0, x1, d1, ds, top, top + 1.0, wall)                # 踊り場の両脇の腰壁
     mb.box(-w / 2 - 2.0, w / 2 + 2.0, ds - 0.25, ds, top, top + 0.15, wall)
-    # 踊り場の奥の縦の筋の入った明るい板(写真 413 の施設名の英文の板)
-    pw = F["panel_w"]
-    mb.box(-pw / 2, pw / 2, d1 - 0.5, d1 - 0.2, top, b0, light)
-    for i in range(int(pw / 0.6) + 1):
-        x = -pw / 2 + 0.6 * i
-        mb.box(x - 0.04, x + 0.04, d1 - 0.2, d1 - 0.12, top, b0, grey)
-    # 殿下の像(台と立像。写真 413・031。大きさは推定)
-    bronze = M.get("gate_bronze")
-    mb.box(-1.2, -0.4, d1 + 1.2, d1 + 2.0, top, top + 1.3, grey)
-    mb.cyl((-0.8, d1 + 1.6, top + 1.3), (-0.8, d1 + 1.6, top + 2.4), 0.22, bronze, n=8)
-    mb.cyl((-0.8, d1 + 1.6, top + 2.4), (-0.8, d1 + 1.6, top + 3.05), 0.17, bronze, n=8)
+    # 踊り場の奥の英文の板(写真 Captain 12259): 中央の柱 1 間いっぱいの小さな白いタイル張りを、太い目地で 3 列 × 2 段に分ける。
+    # 英文の浮き文字・像・街灯は entrance.facade_center
+    pw = step - F["col"]
+    tile = M.get("tile_cream")
+    joint = M.get("concourse_dark")
+    mb.box(-pw / 2, pw / 2, d1 - 0.5, d1 - 0.2, top, b0, tile)
+    for x in (-pw / 6, pw / 6):
+        mb.box(x - 0.02, x + 0.02, d1 - 0.2, d1 - 0.195, top, b0, joint)
+    zm = top + (b0 - top) * 0.47
+    mb.box(-pw / 2, pw / 2, d1 - 0.2, d1 - 0.195, zm - 0.02, zm + 0.02, joint)
 
 
 def _south_back(c):

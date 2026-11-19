@@ -185,6 +185,8 @@ MIX = {
     "road": {"round": 0.6, "ichou": 0.4},
 }
 VARIANTS = 3
+# 必ず針葉樹にする所: 正面入場口の門の内側の両脇(写真 724・70564・202304011520 の背の高いヒマラヤスギ)
+CONIFER_ZONES = [(-30.0, 100.0, 45.0, 131.0)]
 
 
 def build_trees(pts, heights, c):
@@ -198,6 +200,8 @@ def build_trees(pts, heights, c):
     rnd = random.Random(2718)
     for idx, ((x, y, kind), h) in enumerate(zip(pts, heights)):
         mix = MIX.get(kind, MIX["osm"])
+        if any(x0 <= x <= x1 and y0 <= y <= y1 for (x0, y0, x1, y1) in CONIFER_ZONES):
+            mix = {"conifer": 1.0}
         r = rnd.random()
         acc = 0.0
         sel = next(iter(mix))

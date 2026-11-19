@@ -205,7 +205,7 @@ def _font(path):
 
 
 def text_obj(name, body, height, mat, collection, origin, normal, align="CENTER", jp=False, extrude=0.0,
-             max_width=None, up=(0, 0, 1)):
+             max_width=None, up=(0, 0, 1), font=None):
     """壁に貼る文字。origin は文字の基準点(左右は align、上下は中央)、normal は文字の面が向く向き。
     height は大文字の高さ(m)。メッシュに直して返す。"""
     cu = bpy.data.curves.new(name, "FONT")
@@ -213,8 +213,8 @@ def text_obj(name, body, height, mat, collection, origin, normal, align="CENTER"
     cu.align_x = align
     cu.align_y = "CENTER"
     cu.extrude = extrude
-    if jp:
-        f = _font(JP_FONT)
+    if jp or font:
+        f = _font(font or JP_FONT)
         if f:
             cu.font = f
     cu.size = height / 0.72
