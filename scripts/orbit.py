@@ -20,8 +20,8 @@ from cb import cameras, config, sky  # noqa: E402
 
 CENTRE = (-14.0, 0.0)
 TARGET_Z = 7.0
-RADIUS = 235.0
-HEIGHT = 92.0
+RADIUS = 180.0
+HEIGHT = 200.0     # 2026-11-19: 92 m では南の伊藤忠ビル(95 m)と南東の青山OM-SQUARE(100 m、中心から 130 m)が画面をふさいだ。手前のスタンドへの視線がその上を越えるよう、近づけて高くした(半径 180 m、仰角 約 47 度)
 START_DEG = 205.0      # 南の正面のやや東から始めて、反時計回りに一周
 
 
@@ -43,6 +43,7 @@ def main():
     scene.render.image_settings.quality = 96
     scene.cycles.seed = 7
     scene.cycles.use_animated_seed = False
+    scene.render.use_persistent_data = True     # コマごとに場面を読み直さない(1 コマの時間が縮む)
     n = int(round(a.seconds * a.fps))
     fdir = os.path.join(config.ROOT, "out", "orbit_frames_" + a.time)
     os.makedirs(fdir, exist_ok=True)
