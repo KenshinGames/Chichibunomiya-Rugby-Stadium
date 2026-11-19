@@ -165,8 +165,8 @@ def facade_center(c, F):
     # 英文「Prince Chichibu / Memorial Rugby Ground」: 焦げ茶の浮き文字が上に凸の弧を描く 2 行(写真 Captain 12259)
     brown = M.get("emblem_brown")
     zc = top + (b0 - top) * 0.62
-    for line, (txt, h, R, zoff) in enumerate((("Prince  Chichibu", 0.36, 3.2, 0.62), ("Memorial  Rugby  Ground", 0.36, 3.7, 0.0))):
-        widths = [0.22 if ch == " " else (0.36 if ch in "mMwG" else (0.16 if ch in "il" else 0.27)) for ch in txt]
+    for line, (txt, h, R, zoff) in enumerate((("Prince Chichibu", 0.36, 3.2, 0.62), ("Memorial Rugby Ground", 0.36, 3.7, 0.0))):
+        widths = [0.3 if ch == " " else (0.36 if ch in "mMwG" else (0.16 if ch in "il" else 0.27)) for ch in txt]
         widths = [w * h / 0.36 for w in widths]
         tot = sum(widths)
         ang0 = tot / R / 2                                 # 弧の左端の角度
@@ -287,10 +287,60 @@ def _frustum(mb, u, d, z, w0, l0, w1, l1, h, mat):
 
 
 def _statue(c, xf):
-    """ラグビー選手の立像(高さ約 1.7 m、ブロンズ)。局所の +Y が外(広場)を向く。左足を少し前、右腕にボール。"""
+    """ラグビー選手の立像(高さ約 1.7 m、ブロンズ)。局所の +Y が外(広場)を向き、+X が像の右。
+
+    写真 Captain (12259) で確かめたこと: 肩幅の広い自然な立ち姿、襟のあるジャージ、裾の広がった短パン、
+    折り返しのある長い靴下、短い髪。ボールは像の左の腰の前(道から見て右)で、左の前腕で下から、右の手で前から抱える。
+    体は骨組み(点と線)にスキンで肉をつけ、細分割でなめらかにする。顔・指・服のしわは作らない。
+    """
+    # 骨組みの点: 名前 -> (位置, 半径 x, 半径 y)
+    J = {
+        # 右脚(体重をのせてまっすぐ)
+        "toe_r": ((0.10, 0.15, 0.04), 0.035, 0.03), "ank_r": ((0.10, 0.0, 0.09), 0.034, 0.04),
+        "clf_r": ((0.10, -0.015, 0.28), 0.064, 0.07), "kne_r": ((0.10, 0.01, 0.48), 0.048, 0.05),
+        "thi_r": ((0.10, 0.0, 0.64), 0.082, 0.088), "hip_r": ((0.095, 0.0, 0.84), 0.085, 0.085),
+        # 左脚(少し前に出し、膝をゆるめる)
+        "toe_l": ((-0.12, 0.2, 0.04), 0.035, 0.03), "ank_l": ((-0.12, 0.05, 0.09), 0.034, 0.04),
+        "clf_l": ((-0.12, 0.04, 0.28), 0.064, 0.07), "kne_l": ((-0.115, 0.08, 0.47), 0.048, 0.05),
+        "thi_l": ((-0.105, 0.04, 0.64), 0.082, 0.088), "hip_l": ((-0.095, 0.01, 0.84), 0.085, 0.085),
+        # 胴: 腰でくびれ、胸で厚い
+        "pelv": ((0.0, 0.0, 0.9), 0.165, 0.11), "wst": ((0.0, 0.005, 1.04), 0.14, 0.1),
+        "chs": ((0.0, 0.015, 1.24), 0.178, 0.12), "uch": ((0.0, 0.01, 1.36), 0.165, 0.105),
+        "nek": ((0.0, 0.02, 1.47), 0.05, 0.05),
+        # 右腕(体の前を横切ってボールに手をそえる)
+        "sho_r": ((0.2, 0.0, 1.385), 0.058, 0.058), "uar_r": ((0.235, 0.02, 1.26), 0.05, 0.05),
+        "elb_r": ((0.25, 0.06, 1.13), 0.042, 0.042), "wri_r": ((0.02, 0.18, 1.04), 0.032, 0.032),
+        # 左腕(ボールを下から抱える)
+        "sho_l": ((-0.2, 0.0, 1.385), 0.058, 0.058), "uar_l": ((-0.235, 0.0, 1.26), 0.05, 0.05),
+        "elb_l": ((-0.255, 0.01, 1.13), 0.042, 0.042), "wri_l": ((-0.2, 0.17, 0.96), 0.032, 0.032),
+    }
+    E = [("toe_r", "ank_r"), ("ank_r", "clf_r"), ("clf_r", "kne_r"), ("kne_r", "thi_r"), ("thi_r", "hip_r"), ("hip_r", "pelv"),
+         ("toe_l", "ank_l"), ("ank_l", "clf_l"), ("clf_l", "kne_l"), ("kne_l", "thi_l"), ("thi_l", "hip_l"), ("hip_l", "pelv"),
+         ("pelv", "wst"), ("wst", "chs"), ("chs", "uch"), ("uch", "nek"),
+         ("uch", "sho_r"), ("sho_r", "uar_r"), ("uar_r", "elb_r"), ("elb_r", "wri_r"),
+         ("uch", "sho_l"), ("sho_l", "uar_l"), ("uar_l", "elb_l"), ("elb_l", "wri_l")]
+    names = list(J)
+    me = bpy.data.meshes.new("statue")
+    me.from_pydata([J[n][0] for n in names], [(names.index(a), names.index(b)) for a, b in E], [])
+    ob = bpy.data.objects.new("statue", me)
+    c.objects.link(ob)
+    sk = ob.modifiers.new("skin", "SKIN")
+    sk.use_smooth_shade = True
+    if not me.skin_vertices:
+        me.skin_vertices.new()
+    for i, n in enumerate(names):
+        sv = me.skin_vertices[0].data[i]
+        sv.radius = (J[n][1], J[n][2])
+        sv.use_root = n == "pelv"
+    sub = ob.modifiers.new("sub", "SUBSURF")
+    sub.levels = sub.render_levels = 2
+    me.materials.append(M.get("bronze"))
+    ob.matrix_world = xf
+
+    # 服・ボール・手は別の形で重ねる
     bm = bmesh.new()
 
-    def limb(p0, p1, r0, r1, seg=12):
+    def ring(p0, p1, r0, r1, seg=16):
         p0, p1 = Vector(p0), Vector(p1)
         dv = p1 - p0
         q = dv.to_track_quat("Z", "Y")
@@ -299,34 +349,32 @@ def _statue(c, xf):
 
     def ell(cn, rx, ry, rz, rot=None):
         m = Matrix.Translation(cn) @ (rot or Matrix.Identity(4)) @ Matrix.Diagonal((rx, ry, rz, 1.0))
-        bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0, matrix=m)
+        bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=1.0, matrix=m)
 
-    for sx, fy in ((-1, 0.06), (1, -0.02)):              # 足(左足を少し前)
-        x = sx * 0.1
-        ell((x, fy + 0.06, 0.04), 0.055, 0.13, 0.045)
-        limb((x, fy, 0.06), (x, fy, 0.46), 0.05, 0.062)                 # すね(長い靴下)
-        limb((x, fy, 0.44), (x, fy, 0.48), 0.068, 0.068)                # 靴下の折り返し
-        limb((x, fy, 0.47), (x * 1.05, fy * 0.5, 0.82), 0.064, 0.085)    # もも
-    ell((0, 0, 0.84), 0.2, 0.13, 0.11)                                  # 短パン
-    limb((0, 0, 0.82), (0, 0, 0.96), 0.19, 0.18)
-    limb((0, 0, 0.95), (0, 0.01, 1.38), 0.165, 0.2)                     # 胴(ジャージ)
-    ell((0, 0.01, 1.36), 0.21, 0.13, 0.07)                              # 肩
-    limb((0, 0.02, 1.38), (0, 0.02, 1.43), 0.09, 0.075)                 # 襟
-    limb((0, 0.02, 1.42), (0, 0.02, 1.49), 0.052, 0.05)                 # 首
-    ell((0, 0.03, 1.58), 0.095, 0.105, 0.115)                           # 頭
-    limb((-0.21, 0.0, 1.35), (-0.25, 0.02, 1.07), 0.052, 0.045)         # 左の上腕(下げる)
-    limb((-0.25, 0.02, 1.07), (-0.24, 0.06, 0.82), 0.044, 0.036)
-    ell((-0.24, 0.07, 0.79), 0.04, 0.045, 0.055)                        # 左の手
-    limb((0.21, 0.0, 1.35), (0.25, -0.03, 1.08), 0.052, 0.045)          # 右の上腕
-    limb((0.25, -0.03, 1.08), (0.11, 0.14, 1.06), 0.044, 0.036)         # 右の前腕(ボールを抱える)
-    rot = Matrix.Rotation(math.radians(25), 4, "Y") @ Matrix.Rotation(math.radians(20), 4, "Z")
-    ell((0.17, 0.12, 1.0), 0.15, 0.095, 0.095, rot)                     # ボール
-    me = bpy.data.meshes.new("statue")
-    bm.to_mesh(me)
+    for x, y in ((0.10, 0.0), (-0.11, 0.03)):
+        ring((x, y, 0.70), (x * 0.6, y * 0.5, 0.92), 0.115, 0.11)        # 短パンの裾(広がる)
+        ring((x, y, 0.40), (x, y + 0.005, 0.445), 0.066, 0.064)     # 靴下の折り返し
+        ring((x, y - 0.01, 0.33), (x, y - 0.01, 0.342), 0.069, 0.069)                     # 靴下の帯
+    for x, y in ((0.10, 0.06), (-0.12, 0.11)):
+        ell((x, y, 0.045), 0.052, 0.125, 0.048)                           # 靴
+    ring((0.0, 0.0, 0.86), (0.0, 0.0, 0.95), 0.18, 0.172)                 # 腰
+    ring((0.0, 0.025, 1.42), (0.0, 0.025, 1.47), 0.08, 0.06)              # 襟
+    ell((0.0, 0.035, 1.585), 0.082, 0.098, 0.112)                         # 頭
+    ell((0.0, 0.07, 1.535), 0.06, 0.06, 0.05)                             # あご
+    ell((0.0, 0.135, 1.585), 0.014, 0.02, 0.024)                          # 鼻
+    for sx in (1, -1):
+        ell((sx * 0.083, 0.03, 1.585), 0.015, 0.025, 0.032)               # 耳
+    ell((0.0, 0.02, 1.625), 0.088, 0.1, 0.075)                            # 髪(短い)
+    rot = Matrix.Rotation(math.radians(-15), 4, "Y") @ Matrix.Rotation(math.radians(-25), 4, "Z")
+    ell((-0.12, 0.17, 1.01), 0.15, 0.095, 0.095, rot)                    # ボール(左の腰の前)
+    ell((0.0, 0.2, 1.05), 0.04, 0.05, 0.035)                              # 右の手(ボールの前)
+    ell((-0.19, 0.2, 0.95), 0.04, 0.05, 0.035)                            # 左の手(ボールの下)
+    me2 = bpy.data.meshes.new("statue_parts")
+    bm.to_mesh(me2)
     bm.free()
-    for p in me.polygons:
+    for p in me2.polygons:
         p.use_smooth = True
-    me.materials.append(M.get("bronze"))
-    ob = bpy.data.objects.new("statue", me)
-    ob.matrix_world = xf
-    c.objects.link(ob)
+    me2.materials.append(M.get("bronze"))
+    ob2 = bpy.data.objects.new("statue_parts", me2)
+    ob2.matrix_world = xf
+    c.objects.link(ob2)

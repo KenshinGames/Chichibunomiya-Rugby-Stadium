@@ -540,7 +540,7 @@ define("fence_brown", color=srgb(66, 54, 46), rough=0.6, metal=0.4)      # 門�
 define("hedge", color=srgb(56, 90, 46), rough=0.9)
 define("sign_teal", color=srgb(32, 160, 160), rough=0.5)                 # 銘板の台・案内板の見出し
 define("plaque_metal", color=srgb(170, 170, 166), rough=0.4, metal=0.8)  # 銘板(へアラインの金属)
-define("emblem_brown", color=srgb(70, 44, 36), rough=0.5, metal=0.3)     # 英文の浮き文字(写真 Captain 12259)
+define("emblem_brown", color=srgb(48, 30, 24), rough=0.6, metal=0.15)     # 英文の浮き文字(写真 Captain 12259)
 define("bronze", color=srgb(60, 56, 50), rough=0.45, metal=0.8)          # 殿下の像
 define("lamp_pole", color=srgb(230, 216, 214), rough=0.5)                # 曲がった街灯(白に少し桃色)
 define("sconce_salmon", color=srgb(222, 136, 112), rough=0.6)            # 柱の半円筒の壁灯
@@ -632,7 +632,7 @@ _builders = {
 _builders.update({
     "gate_plate": _noisy("gate_plate", srgb(110, 106, 100), 0.6, scale=0.8, amount=0.25, metal=0.3),   # 梁の灰色の鋼板(下の縁がさびる)
     "corten": _noisy("corten", srgb(114, 70, 52), 0.8, scale=0.5, amount=0.3, metal=0.2),             # 門の上の看板のさびた鋼板
-    "granite_red": _noisy("granite_red", srgb(160, 98, 88), 0.5, scale=40.0, amount=0.35),            # 像の台(赤い御影石の粒)
+    "granite_red": _noisy("granite_red", srgb(132, 78, 66), 0.5, scale=40.0, amount=0.35),            # 像の台(赤い御影石の粒)
     "seatmap": _noisy("seatmap", srgb(110, 170, 150), 0.6, scale=3.0, amount=0.6),                     # 座席表の板(色分けした座席図。写真で細部は読めない)
     "tile_cream": _tile_wall("tile_cream", srgb(226, 220, 200), srgb(150, 146, 136)),                 # 英文の板の小さな白いタイル
 })
